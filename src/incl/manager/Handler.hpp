@@ -18,7 +18,7 @@ private:
 public:
   std::vector<basicObj> objpointer{};
   float deltaT{0};
-  unsigned int targetFrameRate{7};
+  unsigned int targetFrameRate{24};
   Handler(int width, int size) : renderer(width, size, objpointer) {
     enableUtf8Console();
     std::cout << dcon::cmds::cursor::Hide << '\n';
@@ -28,5 +28,6 @@ public:
 
   void AddObject(const basicObj &Object);
   void RemoveObject(size_t ID);
+  basicObj &GetObject(size_t ID);
   void Render(bool state = true) { run = state; }
 };

@@ -2,8 +2,7 @@
 #include "../types/Point2D.hpp"
 #include "../types/color/color256.hpp"
 #include <cstddef>
-#include <vector>
-#include "../types/cell/ScreenCell.hpp"
+#include "../manager/Screen.hpp"
 
 class basicObj {
 public:
@@ -14,7 +13,7 @@ public:
   int DrawPriority{0};
 
   void onFrame(float deltaT);
-  void howDraw(std::vector<ScreenCell> &framebuffer);
+  void howDraw(Screen &screen);
   void applyVelocity();
   // virtual ~basicObj() = default;
 };

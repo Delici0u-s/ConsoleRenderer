@@ -29,5 +29,5 @@ enum class pos : uint8_t {
 
 namespace dCosnt {
 constexpr float Grav{9.81};
-constexpr Point2D GravV{0, -Grav};
+constexpr Point2D GravV{0, (Grav * 0.1)};
 } // namespace dCosnt

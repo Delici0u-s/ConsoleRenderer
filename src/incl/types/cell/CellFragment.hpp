@@ -7,4 +7,10 @@ struct CellFragment {
   Color256 color{0, 0, 0}, bgColor{0, 0, 0};
   charMap repres;
   std::string_view getChar();
+
+  void reset() {
+    repres.hideAll();
+    color = {0, 0, 0};
+    bgColor = {0, 0, 0};
+  }
 };
