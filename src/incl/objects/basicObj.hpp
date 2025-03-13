@@ -1,19 +1,24 @@
 #pragma once
-#include "../types/Point2D.hpp"
+#include "../types/Point3D.hpp"
 #include "../types/color/color256.hpp"
 #include <cstddef>
 #include "../manager/Screen.hpp"
 
 class basicObj {
 public:
-  Point2D Origin{0, 0}, Velocity{0, 0};
-  size_t ID{0};
-  Color256 color{255, 255, 255};
-  float DespawnRad{0};
-  int DrawPriority{0};
+  Point3D Origin, Velocity;
+  size_t ID;
+  Color256 Color;
+  float DespawnRad;
 
-  void onFrame(float deltaT);
-  void howDraw(Screen &screen);
-  void applyVelocity();
-  // virtual ~basicObj() = default;
+  basicObj(const Point3D &origin = {}, const Point3D &velocity = {}, const Color256 &color = {},
+           const float despawnRadius = 0) :
+      Origin{origin}, Velocity{velocity}, Color{color}, DespawnRad{despawnRadius} {
+    static size_t maxID{0};
+    ID = ++maxID;
+  }
+  virtual ~basicObj() = default;
+
+  virtual void onFrame(const float deltaT); // adds gravity to velocity and applys velocity be default
+  virtual void howDraw(Screen &screen);     // Draws origin by default
 };

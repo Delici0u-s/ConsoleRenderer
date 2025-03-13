@@ -14,8 +14,9 @@
 #endif
 
 namespace dcon {
+namespace Key {
 
-// The dcon::key enumeration supports all possible key inputs.
+// The key enumeration supports all possible key inputs.
 // Using an enum class ensures strong type-safety and scoped enumerators.
 enum class key : int {
   BACKSPACE = 8,
@@ -190,7 +191,7 @@ inline void sleep(double t) {
 // --------------------------------------------------------------------------
 // Windows Implementation of "isKeyDown"
 // Uses the efficient GetAsyncKeyState API to check if the key is currently down.
-inline bool isKeyDown(dcon::key k) {
+inline bool isKeyDown(key k) {
   int keyVal = static_cast<int>(k);
   // For special keys (stored as negative values) convert to the positive virtual key code.
   if (keyVal < 0) keyVal = -keyVal;
@@ -201,7 +202,7 @@ inline bool isKeyDown(dcon::key k) {
 // Linux Implementation (Terminal Mode)
 // Due to limitations with non-graphical terminals, real-time key state detection is not available.
 // For a full implementation, consider integrating with X11, SDL, or ncurses.
-inline bool isKeyDown(dcon::key /*k*/) { return false; }
+inline bool isKeyDown(key /*k*/) { return false; }
 
 // A RAII helper class to manage terminal mode changes for Linux.
 // It switches to non-canonical mode without echo, and restores the original settings on destruction.
@@ -224,8 +225,8 @@ private:
 // asyncGetCharV
 // Polls for key events and returns them in a vector.
 // (On Windows, only key-down events are processed; on Linux, terminal input is polled.)
-inline std::vector<dcon::key> asyncGetCharV() {
-  std::vector<dcon::key> keys;
+inline std::vector<key> asyncGetCharV() {
+  std::vector<key> keys;
 #if defined(_WIN32)
   HANDLE hInput = GetStdHandle(STD_INPUT_HANDLE);
   if (hInput == INVALID_HANDLE_VALUE) return keys;
@@ -245,15 +246,15 @@ inline std::vector<dcon::key> asyncGetCharV() {
           // Skip pure modifier events.
           if (isModifierKey(keyVal)) continue;
           // Remap specific keys.
-          if (keyVal == 13) keys.push_back(dcon::key::NEWLINE); // Map Enter to newline.
-          else if (keyVal == -46) keys.push_back(dcon::key::DELETE_KEY);
-          else if (keyVal == -49) keys.push_back(static_cast<dcon::key>(251));
+          if (keyVal == 13) keys.push_back(key::NEWLINE); // Map Enter to newline.
+          else if (keyVal == -46) keys.push_back(key::DELETE_KEY);
+          else if (keyVal == -49) keys.push_back(static_cast<key>(251));
           // Skip control keys (0–26) except for BACKSPACE, TAB, NEWLINE.
-          else if (keyVal >= 0 && keyVal <= 26 && keyVal != static_cast<int>(dcon::key::BACKSPACE) &&
-                   keyVal != static_cast<int>(dcon::key::TAB) && keyVal != static_cast<int>(dcon::key::NEWLINE)) {
+          else if (keyVal >= 0 && keyVal <= 26 && keyVal != static_cast<int>(key::BACKSPACE) &&
+                   keyVal != static_cast<int>(key::TAB) && keyVal != static_cast<int>(key::NEWLINE)) {
             continue;
           } else {
-            keys.push_back(static_cast<dcon::key>(keyVal));
+            keys.push_back(static_cast<key>(keyVal));
           }
         }
         // (Optionally, key-up events could be processed here to maintain a key state.)
@@ -297,7 +298,7 @@ inline std::vector<dcon::key> asyncGetCharV() {
       }
       keyVal = -keyVal;
     }
-    // Remap keys to match the dcon::key values.
+    // Remap keys to match the key values.
     switch (keyVal) {
     case 127: keyVal = 8; break; // Map delete to backspace.
     case -27: keyVal = 27; break;
@@ -328,15 +329,16 @@ inline std::vector<dcon::key> asyncGetCharV() {
     // Skip any pure modifier events.
     if (isModifierKey(keyVal)) continue;
     // Skip control keys (0–26) except BACKSPACE, TAB, or NEWLINE.
-    if (keyVal >= 0 && keyVal <= 26 && keyVal != static_cast<int>(dcon::key::BACKSPACE) &&
-        keyVal != static_cast<int>(dcon::key::TAB) && keyVal != static_cast<int>(dcon::key::NEWLINE))
+    if (keyVal >= 0 && keyVal <= 26 && keyVal != static_cast<int>(key::BACKSPACE) &&
+        keyVal != static_cast<int>(key::TAB) && keyVal != static_cast<int>(key::NEWLINE))
       continue;
-    keys.push_back(static_cast<dcon::key>(keyVal));
+    keys.push_back(static_cast<key>(keyVal));
   }
 #endif
   return keys;
 }
 
+} // namespace Key
 } // namespace dcon
 
 #endif // DCON_KEY_HPP

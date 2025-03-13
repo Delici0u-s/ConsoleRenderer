@@ -10,7 +10,8 @@ public:
   const unsigned int m_height;
   std::vector<ScreenCell> framebuffer{};
 
-  Screen(unsigned int width, unsigned int height) : m_width{width}, m_height{height}, framebuffer(width * height) {}
+  Screen(const unsigned int width, const unsigned int height) :
+      m_width{width}, m_height{height}, framebuffer(width * height) {}
 
   friend Renderer;
   ScreenCell &get(unsigned int X, unsigned int Y);

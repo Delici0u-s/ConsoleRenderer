@@ -1,7 +1,7 @@
-#include "CellFragment.hpp"
+#include "ScreenCell.hpp"
 #include <string>
 
-std::string_view CellFragment::getChar() {
+std::string_view ScreenCell::getChar() {
   static std::string buf;
   buf = "";
   // Unicode Braille base is U+2800.

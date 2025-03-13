@@ -1,29 +1,25 @@
 #include "Screen.hpp"
 #include "..//ext/consComm.hpp"
+#include "src/incl/ext/consComm.hpp"
 #include <cstddef>
 #include <sstream>
 
 void Screen::clear() {
-  printbuf.clear();
-  printbuf << dcon::cmds::text::Reset << dcon::cmds::cursor::moveRelative(m_width, 'D')
-           << dcon::cmds::cursor::moveRelative(m_height + 2, 'A');
+  printbuf = {};
+  printbuf << dcon::cmds::text::Reset << dcon::cmds::cursor::ResetPosition;
   for (auto &i : framebuffer)
-    i.left.reset(), i.right.reset();
+    i.reset();
 }
-
-inline void addtobuf(std::stringstream &b, CellFragment &V) {
-  b << dcon::cmds::text::fo::setRGB(V.color.R.value, V.color.G.value, V.color.G.value)
-    << dcon::cmds::text::bg::setRGB(V.bgColor.R.value, V.bgColor.G.value, V.bgColor.G.value) << V.getChar();
-};
 
 void Screen::WriteBuffer() {
   for (size_t i{0}; i < framebuffer.size(); ++i) {
-    addtobuf(printbuf, framebuffer[i].left);
-    addtobuf(printbuf, framebuffer[i].right);
+    auto &V{framebuffer[i]};
+    printbuf << dcon::cmds::text::fo::setRGB(V.color.R, V.color.G, V.color.G)
+             << dcon::cmds::text::bg::setRGB(V.bgColor.R, V.bgColor.G, V.bgColor.G) << V.getChar();
     if (((i + 1) % m_width) == 0) printbuf << dcon::cmds::text::Reset << '\n';
   }
 }
 ScreenCell &Screen::get(unsigned int X, unsigned int Y) {
-  if ((X >= 0 && X <= m_width) || (Y >= 0 && Y <= m_height)) return framebuffer[X + m_width * Y];
-  else throw "tried to access screenBuffer out of range";
+  if ((X >= m_width) || (Y >= m_height)) throw "tried to access screenBuffer out of range";
+  else return framebuffer[X + m_width * Y];
 }

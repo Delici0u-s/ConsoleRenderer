@@ -1,23 +1,12 @@
 #include "basicObj.hpp"
-#include <cstddef>
-#include <iostream>
-#include <vector>
 #include "../types/cell/ScreenCell.hpp"
 #include "../general.hpp"
-#include "../types/Point2D.hpp"
+#include "../types/Point3D.hpp"
 #include "src/incl/manager/Screen.hpp"
 
-void basicObj::onFrame(float deltaT) {
-  // std::cout << "running OnFrame\n";
-  // std::cout << Velocity.x << ' ' << Velocity.y << '\n';
-  Velocity += (dCosnt::GravV)*deltaT * 0.01;
-  applyVelocity();
-}
-
-void basicObj::applyVelocity() {
-  // std::cout << Origin.x << ' ' << Origin.y << "\nAddress: " << this << '\n';
+void basicObj::onFrame(const float deltaT) {
+  Velocity += (dCosnt::GravV)*deltaT * 0.1;
   Origin += Velocity;
-  // std::cout << "Applying Velocity\n";
 }
 
 void basicObj::howDraw(Screen &screen) {
@@ -32,9 +21,8 @@ void basicObj::howDraw(Screen &screen) {
   }
 
   try {
-    auto &b{screen.get(static_cast<unsigned int>(Origin.x), static_cast<unsigned int>(Origin.y))};
-    auto &a((floorX < 0.5f) ? b.left : b.right);
+    auto &a{screen.get(static_cast<unsigned int>(Origin.x), static_cast<unsigned int>(Origin.y))};
     a.repres.show(1 << out);
-    a.color.blend(color);
-  } catch (...) {}
+    a.color.blend(Color);
+  } catch (...) { ; }
 }

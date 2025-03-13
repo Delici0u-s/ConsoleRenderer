@@ -3,6 +3,7 @@
 #include "../objects/basicObj.hpp"
 #include "../general.hpp"
 #include "src/incl/ext/consComm.hpp"
+#include <chrono>
 #include <cstddef>
 #include <thread>
 #include <mutex>
@@ -15,18 +16,27 @@ private:
   void Runner();
   std::mutex renderMutex{};
 
+  bool isInDespawnRange(basicObj &obj);
+
 public:
   std::vector<basicObj> objpointer{};
   float deltaT{0};
-  unsigned int targetFrameRate{24};
-  Handler(int width, int size) : renderer(width, size, objpointer) {
+  // Will be vsync capped because damn console
+  unsigned int targetFrameRate{180};
+  Handler(unsigned int width, unsigned int height) : renderer(width, height, objpointer) {
     enableUtf8Console();
-    std::cout << dcon::cmds::cursor::Hide << '\n';
+    std::cout << dcon::cmds::cursor::Hide << dcon::cmds::screen::Clear << dcon::cmds::cursor::ResetPosition;
+
     std::thread([&]() { Runner(); }).detach();
   }
-  ~Handler() { std::cout << dcon::cmds::cursor::Show << dcon::cmds::text::Reset; }
+  ~Handler() {
+    Render(false);
+    std::this_thread::sleep_for(std::chrono::milliseconds(50)); // sleep so async printscreen doesnt prints again
+    std::cout << dcon::cmds::text::Reset << dcon::cmds::screen::Clear << dcon::cmds::cursor::ResetPosition
+              << dcon::cmds::cursor::Show;
+  }
 
-  void AddObject(const basicObj &Object);
+  basicObj &AddObject(const basicObj &Object);
   void RemoveObject(size_t ID);
   basicObj &GetObject(size_t ID);
   void Render(bool state = true) { run = state; }

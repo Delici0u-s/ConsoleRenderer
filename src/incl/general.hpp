@@ -1,7 +1,10 @@
 #pragma once
 #include <clocale>
 #include <cstdint>
-#include "Types/Point2D.hpp"
+#include "Types/Point3D.hpp"
+
+// If you want the application to print debug information uncomment the following line:
+#define d_DEBUG
 
 #ifdef _WIN32
 #include <windows.h>
@@ -29,5 +32,5 @@ enum class pos : uint8_t {
 
 namespace dCosnt {
 constexpr float Grav{9.81};
-constexpr Point2D GravV{0, (Grav * 0.1)};
+constexpr Point3D GravV{0, (Grav * 0.1)};
 } // namespace dCosnt
