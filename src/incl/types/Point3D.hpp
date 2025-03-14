@@ -171,6 +171,10 @@ struct Point3D {
     // 'this' is the "a" in the equation
     return (*this) * (1.0f - t) + target * t;
   }
+  constexpr Point3D &linearLerpAssign(const Point3D &target, float t) {
+    *this = (*this) * (1.0f - t) + target * t;
+    return *this;
+  }
 
   //-------------------------------------------------------------------------
   // EXPONENTIAL DECAY
@@ -185,6 +189,10 @@ struct Point3D {
   constexpr Point3D expDecay(const Point3D &target, float decay, float dt, int expTerms = 10) const {
     // 'this' is the "a" in the equation
     return target + ((*this) - target) * constexpr_exp(-decay * dt, expTerms);
+  }
+  constexpr Point3D &expDecayAssign(const Point3D &target, float decay, float dt, int expTerms = 10) {
+    *this = target + ((*this) - target) * constexpr_exp(-decay * dt, expTerms);
+    return *this;
   }
 
   //-------------------------------------------------------------------------

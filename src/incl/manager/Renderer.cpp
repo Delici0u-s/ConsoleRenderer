@@ -1,19 +1,23 @@
+// #include "Renderer.hpp"
+// #include "Screen.hpp"
+// #include <iostream>
+
+// void Renderer::DrawScreen() {
+//   screen.clear();
+//   for (auto &obj : objpointer)
+//     obj.howDraw(screen);
+//   screen.WriteBuffer();
+//   std::cout << screen.printbuf.rdbuf();
+// }
+
 #include "Renderer.hpp"
 #include "Screen.hpp"
-#include <cstdio>
 #include <iostream>
 
 void Renderer::DrawScreen() {
-  // std::cout << "EnteringDrawScreen\n";
   screen.clear();
-  // std::cout << "HowDraws:\n";
-  for (auto &i : objpointer)
-    // std::cout << typeid(i).name() << '\n';
-    i.howDraw(screen);
-  // std::cout << "WriteBuf:\n";
+  for (auto &obj : objpointer)
+    obj->howDraw(screen);
   screen.WriteBuffer();
-  // std::cout << "Printing\n";
   std::cout << screen.printbuf.rdbuf();
-
-  // std::cout << "donePrinting\n";
 }

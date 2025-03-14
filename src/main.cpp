@@ -1,56 +1,57 @@
-#include <chrono>
-#include <memory>
-#include <thread>
 #include "incl/manager/Handler.hpp"
-#include "incl/objects/basicObj.hpp"
+#include "incl/objects/Particle.hpp"
+#include "incl/types/Point3D.hpp"
+#include "incl/types/color/color256.hpp"
 #include "incl/ext/random.h"
 #include "incl/ext/key.hpp"
-#include "incl/types/Point3D.hpp"
-#include "incl/general.hpp"
-#include "incl/objects/BackgroundObj.hpp"
+#include <chrono>
+#include <thread>
+#include "incl/objects/backG.hpp"
 
-#define WIDTH 160
+// suggested to stay 180 x 40
+#define WIDTH 180
 #define HEIGHT 40
 
 int main() {
   Handler H{WIDTH, HEIGHT};
-
   H.Render(true);
-  float x{WIDTH / 2.0}, y{HEIGHT / 2.0};
+
+  auto a{H.AddObject(backG{{255, 0, 0}, {10, 5}})};
+
+  float x = WIDTH / 2.0f, y = HEIGHT / 2.0f;
   Point3D addTo;
 
-  obj::BackgoundS a{{255, 0, 0}, {10, 10}};
-  // H.AddObject(a);
+  // H.AddObject(backG{{255, 0, 0}, {10, 10}});
 
   while (true) {
-    // Colored
-    // H.AddObject({{x, y},
-    //              {
-    //                  static_cast<float>(Random::get(-20, 20) * 0.002) + addTo.x,
-    //                  static_cast<float>(Random::get(-20, 20) * 0.002) + addTo.y,
-    //              },
-    //              {
-    //                  Random::get<unsigned char>(0x00, 0xFF),
-    //                  Random::get<unsigned char>(0x00, 0xFF),
-    //                  Random::get<unsigned char>(0x00, 0xFF),
-    //              },
-    //              10});
-    // Only white
-    basicObj a{{x, y},
-               {static_cast<float>(Random::get(-20, 20) * 0.001) + addTo.x,
-                static_cast<float>(Random::get(-20, 20) * 0.001) + addTo.y},
-               {255, 255, 255, 255},
-               10};
+    // Create and add a Particle with a lifetime of 3 seconds.
+    H.AddObject(Particle{Point3D{x, y},
+                         Point3D{static_cast<float>(Random::get(-20, 20) * 0.001f) + addTo.x,
+                                 static_cast<float>(Random::get(-20, 20) * 0.001f) + addTo.y},
+                         Color256{3, 252, 202, 255}, 10, 0.3f});
 
-    H.AddObject(a);
-    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    a->Origin.linearLerpAssign({x - a->getWidth() / 2, y - a->getHeight() / 2}, 0.05);
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(30));
 
     addTo = 0;
     if (dcon::Key::isKeyDown(dcon::Key::key::ESCAPE)) break;
-    if (dcon::Key::isKeyDown(dcon::Key::key::W)) y -= 0.5, addTo.y -= 0.05;
-    if (dcon::Key::isKeyDown(dcon::Key::key::S)) y += 0.5, addTo.y += 0.05;
-    if (dcon::Key::isKeyDown(dcon::Key::key::A)) x -= 1, addTo.x -= 0.1;
-    if (dcon::Key::isKeyDown(dcon::Key::key::D)) x += 1, addTo.x += 0.1;
+    if (dcon::Key::isKeyDown(dcon::Key::key::W)) {
+      y -= 0.5f;
+      addTo.y -= 0.05f;
+    }
+    if (dcon::Key::isKeyDown(dcon::Key::key::S)) {
+      y += 0.5f;
+      addTo.y += 0.05f;
+    }
+    if (dcon::Key::isKeyDown(dcon::Key::key::A)) {
+      x -= 1.0f;
+      addTo.x -= 0.1f;
+    }
+    if (dcon::Key::isKeyDown(dcon::Key::key::D)) {
+      x += 1.0f;
+      addTo.x += 0.1f;
+    }
   }
 
   return 0;

@@ -3,7 +3,8 @@
 
 void ScreenCell::AddToPrintBuf(std::stringstream &s) {
   if (bgColorZ > colorZ) s << dcon::cmds::text::bg::setRGB(bgColor.R, bgColor.G, bgColor.G) << ' ';
-  else
+  else {
     s << dcon::cmds::text::bg::setRGB(bgColor.R, bgColor.G, bgColor.G)
       << dcon::cmds::text::fo::setRGB(color.R, color.G, color.G) << repres.getChar();
+  }
 }

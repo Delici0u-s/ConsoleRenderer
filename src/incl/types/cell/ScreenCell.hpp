@@ -1,11 +1,12 @@
 #pragma once
 #include "charMap.hpp"
 #include "../color/color256.hpp"
+#include <limits>
 #include <sstream>
 
 struct ScreenCell {
   Color256 color, bgColor;
-  float bgColorZ, colorZ;
+  float bgColorZ{std::numeric_limits<float>::lowest()}, colorZ{0};
   charMap repres;
 
   constexpr void setColor(const Color256 &col, const float Z) {
@@ -22,6 +23,8 @@ struct ScreenCell {
     repres.hideAll();
     color = {};
     bgColor = {};
+    bgColorZ = std::numeric_limits<float>::lowest();
+    colorZ = 0;
   }
   void AddToPrintBuf(std::stringstream &s);
 };
