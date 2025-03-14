@@ -1,10 +1,11 @@
 #pragma once
 #include "Renderer.hpp"
 #include "../objects/basicObj.hpp"
+#include "../ext/consComm.hpp"
 #include "../general.hpp"
-#include "src/incl/ext/consComm.hpp"
 #include <chrono>
 #include <cstddef>
+#include <memory>
 #include <thread>
 #include <mutex>
 

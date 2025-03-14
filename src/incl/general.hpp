@@ -20,15 +20,27 @@ inline void enableUtf8Console() {
   if (setlocale(LC_ALL, "") == nullptr) { throw "Console could not be activated as UTF-8, Aborting"; }
 #endif
 }
-
 enum class pos : uint8_t {
-  topLeft = 1,
-  midLeft = 1 << 1,
-  botLeft = 1 << 2,
-  topRight = 1 << 3,
-  midRight = 1 << 4,
-  botRight = 1 << 5,
+  topLeft = 1,        // 0x01
+  UmidLeft = 1 << 1,  // 0x02
+  DmidLeft = 1 << 2,  // 0x04
+  botLeft = 1 << 6,   // 0x08
+  topRight = 1 << 3,  // 0x10
+  UmidRight = 1 << 4, // 0x20
+  LmidRight = 1 << 5, // 0x40
+  botRight = 1 << 7,  // 0x80
 };
+
+// enum class pos : uint8_t {
+//   topLeft = 1,
+//   UmidLeft = 1 << 1,
+//   DmidLeft = 1 << 2,
+//   botLeft = 1 << 3,
+//   topRight = 1 << 4,
+//   UmidRight = 1 << 5,
+//   LmidRight = 1 << 6,
+//   botRight = 1 << 7,
+// };
 
 namespace dCosnt {
 constexpr float Grav{9.81};

@@ -1,6 +1,7 @@
 #pragma once
 #include "Screen.hpp"
 #include "../objects/basicObj.hpp"
+#include <memory>
 #include <vector>
 
 class Renderer {

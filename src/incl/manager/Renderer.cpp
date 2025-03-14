@@ -8,6 +8,7 @@ void Renderer::DrawScreen() {
   screen.clear();
   // std::cout << "HowDraws:\n";
   for (auto &i : objpointer)
+    // std::cout << typeid(i).name() << '\n';
     i.howDraw(screen);
   // std::cout << "WriteBuf:\n";
   screen.WriteBuffer();

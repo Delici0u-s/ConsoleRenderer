@@ -14,11 +14,11 @@ void basicObj::howDraw(Screen &screen) {
   const float floorX{Origin.x - (int)Origin.x};
   const float floorY{Origin.y - (int)Origin.y};
   int out{0};
-  if (floorX >= 0.75f || (floorX >= 0.25f && floorX <= 0.5f)) out += 3;
-  if (floorY > 0.3333f) {
-    if (floorY > 0.6666f) ++out;
-    ++out;
-  }
+
+  if (floorX > 0.5f) out += 3;
+  if (floorY > 0.75) out = (out == 3) ? 7 : 6;
+  else if (floorY > 0.5) out += 2;
+  else out += 1;
 
   try {
     auto &a{screen.get(static_cast<unsigned int>(Origin.x), static_cast<unsigned int>(Origin.y))};

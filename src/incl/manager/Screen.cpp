@@ -13,9 +13,7 @@ void Screen::clear() {
 
 void Screen::WriteBuffer() {
   for (size_t i{0}; i < framebuffer.size(); ++i) {
-    auto &V{framebuffer[i]};
-    printbuf << dcon::cmds::text::fo::setRGB(V.color.R, V.color.G, V.color.G)
-             << dcon::cmds::text::bg::setRGB(V.bgColor.R, V.bgColor.G, V.bgColor.G) << V.getChar();
+    framebuffer[i].AddToPrintBuf(printbuf);
     if (((i + 1) % m_width) == 0) printbuf << dcon::cmds::text::Reset << '\n';
   }
 }

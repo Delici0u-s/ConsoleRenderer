@@ -19,6 +19,7 @@ public:
   }
   virtual ~basicObj() = default;
 
-  virtual void onFrame(const float deltaT); // adds gravity to velocity and applys velocity be default
-  virtual void howDraw(Screen &screen);     // Draws origin by default
+  virtual void onFrame([[maybe_unused]] const float deltaT); // adds gravity to velocity and applys velocity be default
+  virtual void howDraw(Screen &screen);                      // Draws origin by default
+  // Virtual weglassn lol
 };
