@@ -1,32 +1,3 @@
-// #include "text.hpp"
-// #include "../types/cell/ScreenCell.hpp"
-// #include "../general.hpp"
-// #include <cstddef>
-
-// void text::onFrame([[maybe_unused]] float deltaT) {}
-
-// void text::howDraw(Screen &screen) {
-//   // switch (align) {
-//   // case text::alignment::center:
-//   // case text::alignment::left:
-//   // case text::alignment::right:
-//   // }
-//   unsigned int psX{0}, psY{0};
-//   for (char i : content) {
-//     if (i == '\n') {
-//       ++psY;
-//       psX = 0;
-//     } else {
-//       auto &a{screen.get(Origin.x + psX, Origin.y + psY)};
-//       if (a.bgColorZ <= Origin.z) a.setbgColor(BackgroundCol, Origin.z);
-//       if (a.colorZ <= Origin.z) a.setColor(Color, Origin.z);
-//       if (a.repres.zpos <= Origin.z) a.repres.setChar(content, Origin.z);
-//     }
-//   }
-// }
-
-// bool text::isExpired() const { return lifetime <= 0; }
-
 #include "text.hpp"
 #include "../types/cell/ScreenCell.hpp"
 #include "../general.hpp"

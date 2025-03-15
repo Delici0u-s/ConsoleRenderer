@@ -1,6 +1,6 @@
 #include "Screen.hpp"
 #include "..//ext/consComm.hpp"
-#include "src/incl/ext/consComm.hpp"
+#include "../ext/consComm.hpp"
 #include <cstddef>
 #include <sstream>
 

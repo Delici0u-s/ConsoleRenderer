@@ -10,16 +10,8 @@ struct ScreenCell {
   charMap repres;
 
   void setColor(const Color256 &newColor, const float newZ);
-  // constexpr void setColor(const Color256 &col, const float Z) {
-  //   color = col;
-  //   colorZ = Z;
-  // }
 
   void setbgColor(const Color256 &newColor, const float newZ);
-  // constexpr void setbgColor(const Color256 &col, const float Z) {
-  //   bgColor = col;
-  //   bgColorZ = Z;
-  // }
 
   void reset() {
     repres.hideAll();

@@ -2,6 +2,7 @@
 #include "DefaultObj.hpp"
 #include "../ext/key.hpp"
 #include "Particle.hpp"
+#include "src/incl/types/Point3D.hpp"
 
 class Player : public DefaultObj {
 public:
@@ -10,24 +11,18 @@ public:
   void onFrame(float deltaT) override {
     // Here you could check for key input to update the player's velocity or position.
     // For example:
-    if (dcon::Key::isKeyDown(dcon::Key::key::W)) Velocity.y -= 1.5f * deltaT;
-    if (dcon::Key::isKeyDown(dcon::Key::key::S)) Velocity.y += 1.5f * deltaT;
-    if (dcon::Key::isKeyDown(dcon::Key::key::A)) Velocity.x -= 3.0f * deltaT;
-    if (dcon::Key::isKeyDown(dcon::Key::key::D)) Velocity.x += 3.0f * deltaT;
+    static Point3D Adder;
+    Adder = {};
+    if (dcon::Key::isKeyDown(dcon::Key::key::W)) Adder.y -= 1;
+    if (dcon::Key::isKeyDown(dcon::Key::key::S)) Adder.y += 1;
+    if (dcon::Key::isKeyDown(dcon::Key::key::A)) Adder.x -= 1;
+    if (dcon::Key::isKeyDown(dcon::Key::key::D)) Adder.x += 1;
+    Adder = Adder.normalized();
+    Velocity += {Adder.x * 2.0f * deltaT, Adder.y * deltaT};
     Origin += Velocity;
     Velocity.linearLerpAssign({}, 0.03);
     // You can add more features (like shooting, collision, etc.) as needed.
   }
 
-  void howDraw(Screen &screen) override {
-    // Draw a 'P' at the player's position.
-    Particle{Origin, {0, 0}, Color, 0, 0}.howDraw(screen);
-    // try {
-    //   auto &cell = screen.get(static_cast<unsigned int>(Origin.x), static_cast<unsigned int>(Origin.y));
-    //   cell.repres.setChar("P", Origin.z);
-    //   cell.color.blend(Color);
-    // } catch (...) {
-    //   // Handle out-of-range errors.
-    // }
-  }
+  void howDraw(Screen &screen) override { Particle{Origin, {0, 0}, Color, 0, 0}.howDraw(screen); }
 };

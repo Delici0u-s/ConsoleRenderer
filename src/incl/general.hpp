@@ -31,17 +31,6 @@ enum class pos : uint8_t {
   botRight = 1 << 7,  // 0x80
 };
 
-// enum class pos : uint8_t {
-//   topLeft = 1,
-//   UmidLeft = 1 << 1,
-//   DmidLeft = 1 << 2,
-//   botLeft = 1 << 3,
-//   topRight = 1 << 4,
-//   UmidRight = 1 << 5,
-//   LmidRight = 1 << 6,
-//   botRight = 1 << 7,
-// };
-
 namespace dCosnt {
 constexpr float Grav{9.81};
 constexpr Point3D GravV{0, (Grav * 0.1)};

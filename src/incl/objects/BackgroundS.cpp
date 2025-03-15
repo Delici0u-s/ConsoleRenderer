@@ -1,18 +1,6 @@
 #include "BackgroundS.hpp"
 #include "../types/cell/ScreenCell.hpp"
 #include "../general.hpp"
-
-// void backG::onFrame(float deltaT) {}
-
-// void backG::howDraw(Screen &screen) {
-
-//   for (unsigned int x{(unsigned int)Start.x}; x < (unsigned int)End.x || x < screen.m_width; ++x)
-//     for (unsigned int y{(unsigned int)Start.y}; y < (unsigned int)End.y || y < screen.m_height; ++y) {
-//       auto &a{screen.get(x, y)};
-//       if (a.bgColorZ < Z) a.setbgColor(Color, Z);
-//     }
-// }
-
 #include <algorithm> // For std::min and std::max
 
 void backgroundS::onFrame([[maybe_unused]] float deltaT) {} // No per-frame updates for a static background.
