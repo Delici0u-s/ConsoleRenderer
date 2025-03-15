@@ -1,0 +1,2140 @@
+Contents of ./src:
+
+main.cpp:
+
+#include "incl/manager/Handler.hpp"
+#include "incl/objects/Particle.hpp"
+#include "incl/objects/text.hpp"
+#include "incl/types/Point3D.hpp"
+#include "incl/types/color/color256.hpp"
+#include "incl/ext/random.h"
+#include "incl/ext/key.hpp"
+#include <chrono>
+#include <thread>
+#include "incl/objects/BackgroundS.hpp"
+
+// suggested to stay 180 x 40
+#define WIDTH 180
+#define HEIGHT 40
+
+int main() {
+  Handler H{WIDTH, HEIGHT};
+  H.Render(true);
+
+  auto a{H.AddObject(backgroundS{{255, 0, 0}, {10, 5}})};
+  H.AddObject(text{"Hello world!", text::alignment::center, {10, 10, 10}});
+
+  float x = WIDTH / 2.0f, y = HEIGHT / 2.0f;
+  Point3D addTo;
+
+  // H.AddObject(backG{{255, 0, 0}, {10, 10}});
+
+  while (true) {
+    // Create and add a Particle with a lifetime of 3 seconds.
+    H.AddObject(Particle{Point3D{x, y},
+                         Point3D{static_cast<float>(Random::get(-20, 20) * 0.001f) + addTo.x,
+                                 static_cast<float>(Random::get(-20, 20) * 0.001f) + addTo.y},
+                         Color256{3, 252, 202, 255}, 10, 0.3f});
+
+    a->Origin.linearLerpAssign({x - a->getWidth() / 2, y - a->getHeight() / 2}, 0.05);
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(30));
+
+    addTo = 0;
+    if (dcon::Key::isKeyDown(dcon::Key::key::ESCAPE)) break;
+    if (dcon::Key::isKeyDown(dcon::Key::key::W)) {
+      y -= 0.5f;
+      addTo.y -= 0.05f;
+    }
+    if (dcon::Key::isKeyDown(dcon::Key::key::S)) {
+      y += 0.5f;
+      addTo.y += 0.05f;
+    }
+    if (dcon::Key::isKeyDown(dcon::Key::key::A)) {
+      x -= 1.0f;
+      addTo.x -= 0.1f;
+    }
+    if (dcon::Key::isKeyDown(dcon::Key::key::D)) {
+      x += 1.0f;
+      addTo.x += 0.1f;
+    }
+  }
+
+  return 0;
+}
+
+
+
+
+
+
+incl\general.hpp:
+
+#pragma once
+#include <clocale>
+#include <cstdint>
+#include "Types/Point3D.hpp"
+
+// If you want the application to print debug information uncomment the following line:
+#define d_DEBUG
+
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
+inline void enableUtf8Console() {
+#ifdef _WIN32
+  // Set Windows console output code page to UTF-8.
+  if (!SetConsoleOutputCP(CP_UTF8)) { throw "Console could not be activated as UTF-8, Aborting"; }
+
+#else
+  // On Linux and macOS, set the locale to the environment's default.
+  if (setlocale(LC_ALL, "") == nullptr) { throw "Console could not be activated as UTF-8, Aborting"; }
+#endif
+}
+enum class pos : uint8_t {
+  topLeft = 1,        // 0x01
+  UmidLeft = 1 << 1,  // 0x02
+  DmidLeft = 1 << 2,  // 0x04
+  botLeft = 1 << 6,   // 0x08
+  topRight = 1 << 3,  // 0x10
+  UmidRight = 1 << 4, // 0x20
+  LmidRight = 1 << 5, // 0x40
+  botRight = 1 << 7,  // 0x80
+};
+
+// enum class pos : uint8_t {
+//   topLeft = 1,
+//   UmidLeft = 1 << 1,
+//   DmidLeft = 1 << 2,
+//   botLeft = 1 << 3,
+//   topRight = 1 << 4,
+//   UmidRight = 1 << 5,
+//   LmidRight = 1 << 6,
+//   botRight = 1 << 7,
+// };
+
+namespace dCosnt {
+constexpr float Grav{9.81};
+constexpr Point3D GravV{0, (Grav * 0.1)};
+} // namespace dCosnt
+
+
+
+
+
+incl\ext\consComm.hpp:
+
+#ifndef DCON_CMDS_HPP
+#define DCON_CMDS_HPP
+
+#include <iostream> // For convenience functions that write directly to std::cout
+#include <string>
+
+namespace dcon {
+namespace cmds {
+
+// ----------------------------
+// Cursor movement and manipulation
+// ----------------------------
+namespace cursor {
+// Fixed sequences
+constexpr const char *Up = "\033[F"; // Move cursor up one line (to beginning)
+constexpr const char *Down =
+    "\033[E"; // Move cursor down one line (to beginning)
+constexpr const char *Forward =
+    "\033[C"; // Move cursor forward (right) one column
+constexpr const char *Backward =
+    "\033[D"; // Move cursor backward (left) one column
+constexpr const char *ResetPosition =
+    "\033[H";                             // Reset cursor to top-left of screen
+constexpr const char *Save = "\033[s";    // Save the current cursor position
+constexpr const char *Restore = "\033[u"; // Restore the last saved position
+constexpr const char *Hide = "\033[?25l"; // Hide the cursor
+constexpr const char *Show = "\033[?25h"; // Show the cursor
+
+// Parameterized functions
+
+// Move to a specific row and column.
+inline std::string moveTo(int row, int col) {
+  return "\033[" + std::to_string(row) + ";" + std::to_string(col) + "H";
+}
+
+// Move relative: n is the number of positions, direction is one of:
+// 'A' = up, 'B' = down, 'C' = forward/right, 'D' = backward/left.
+inline std::string moveRelative(int n, char direction) {
+  return "\033[" + std::to_string(n) + direction;
+}
+
+// Remove (delete) n lines above the cursor.
+inline std::string removeLines(int n) {
+  return "\033[" + std::to_string(n) + "M";
+}
+
+// Move the cursor to column n on the current row.
+inline std::string moveToColumn(int n) {
+  return "\033[" + std::to_string(n) + "G";
+}
+} // namespace cursor
+
+// ----------------------------
+// Screen clearing and scrolling
+// ----------------------------
+namespace screen {
+// Fixed sequences
+constexpr const char *ClearLine = "\033[2K"; // Clear the entire line
+constexpr const char *ClearLineToEnd =
+    "\033[K"; // Clear from cursor to end of line
+constexpr const char *ClearLineToStart =
+    "\033[1K"; // Clear from cursor to beginning of line
+constexpr const char *Clear = "\033[2J";     // Clear the entire screen
+constexpr const char *ClearToEnd = "\033[J"; // Clear screen from cursor to end
+constexpr const char *ClearToStart =
+    "\033[1J"; // Clear screen from cursor to beginning
+constexpr const char *ClearDisplay =
+    "\033[3J"; // Clear entire display including scrollback
+
+// Parameterized functions
+
+// Erase n characters starting at the cursor.
+inline std::string eraseCharacters(int n) {
+  return "\033[" + std::to_string(n) + "X";
+}
+
+// Scroll the display up by n lines.
+inline std::string scrollUp(int n) { return "\033[" + std::to_string(n) + "S"; }
+
+// Scroll the display down by n lines.
+inline std::string scrollDown(int n) {
+  return "\033[" + std::to_string(n) + "T";
+}
+
+// Insert n blank lines at the cursor position.
+inline std::string insertLines(int n) {
+  return "\033[" + std::to_string(n) + "L";
+}
+} // namespace screen
+
+// ----------------------------
+// Text styling and coloring
+// ----------------------------
+namespace text {
+// Reset all text attributes.
+constexpr const char *Reset = "\033[0m";
+
+// Effects (ef)
+namespace ef {
+
+constexpr const char *Bold = "\033[1m";
+constexpr const char *Dim = "\033[2m";
+constexpr const char *Italic = "\033[3m";
+constexpr const char *Underline = "\033[4m";
+constexpr const char *Blink = "\033[5m";
+constexpr const char *Inverse = "\033[7m";
+constexpr const char *Hidden = "\033[8m";
+constexpr const char *Strikethrough = "\033[9m";
+
+// Reset Effects
+constexpr const char *ResetBold = "\033[22m";
+constexpr const char *ResetDim = "\033[22m"; // Same as ResetBold
+constexpr const char *ResetItalic = "\033[23m";
+constexpr const char *ResetUnderline = "\033[24m";
+constexpr const char *ResetBlink = "\033[25m";
+constexpr const char *ResetInverse = "\033[27m";
+constexpr const char *ResetHidden = "\033[28m";
+constexpr const char *ResetStrikethrough = "\033[29m";
+
+} // namespace ef
+
+// Foreground text colors.
+namespace fo {
+constexpr const char *Reset = "\033[39m";
+
+constexpr const char *Black = "\033[30m";
+constexpr const char *Red = "\033[31m";
+constexpr const char *Green = "\033[32m";
+constexpr const char *Yellow = "\033[33m";
+constexpr const char *Blue = "\033[34m";
+constexpr const char *Magenta = "\033[35m";
+constexpr const char *Cyan = "\033[36m";
+constexpr const char *White = "\033[37m";
+constexpr const char *BrightBlack = "\033[90m";
+constexpr const char *BrightRed = "\033[91m";
+constexpr const char *BrightGreen = "\033[92m";
+constexpr const char *BrightYellow = "\033[93m";
+constexpr const char *BrightBlue = "\033[94m";
+constexpr const char *BrightMagenta = "\033[95m";
+constexpr const char *BrightCyan = "\033[96m";
+constexpr const char *BrightWhite = "\033[97m";
+
+// 256-color support (pass a value from 0 to 255)
+inline std::string set256(int color) {
+  return "\033[38;5;" + std::to_string(color) + "m";
+}
+
+// RGB support.
+inline std::string setRGB(int r, int g, int b) {
+  return "\033[38;2;" + std::to_string(r) + ";" + std::to_string(g) + ";" +
+         std::to_string(b) + "m";
+}
+} // namespace fo
+
+// Background colors.
+namespace bg {
+constexpr const char *Reset = "\033[49m";
+
+constexpr const char *Black = "\033[40m";
+constexpr const char *Red = "\033[41m";
+constexpr const char *Green = "\033[42m";
+constexpr const char *Yellow = "\033[43m";
+constexpr const char *Blue = "\033[44m";
+constexpr const char *Magenta = "\033[45m";
+constexpr const char *Cyan = "\033[46m";
+constexpr const char *White = "\033[47m";
+constexpr const char *BrightBlack = "\033[100m";
+constexpr const char *BrightRed = "\033[101m";
+constexpr const char *BrightGreen = "\033[102m";
+constexpr const char *BrightYellow = "\033[103m";
+constexpr const char *BrightBlue = "\033[104m";
+constexpr const char *BrightMagenta = "\033[105m";
+constexpr const char *BrightCyan = "\033[106m";
+constexpr const char *BrightWhite = "\033[107m";
+
+// 256-color support.
+inline std::string set256(int color) {
+  return "\033[48;5;" + std::to_string(color) + "m";
+}
+
+// RGB support.
+inline std::string setRGB(int r, int g, int b) {
+  return "\033[48;2;" + std::to_string(r) + ";" + std::to_string(g) + ";" +
+         std::to_string(b) + "m";
+}
+} // namespace bg
+} // namespace text
+
+// ----------------------------
+// Terminal modes and window title
+// ----------------------------
+namespace terminal {
+// Enable/disable alternate screen buffer.
+constexpr const char *AltScreen = "\033[?1049h";
+constexpr const char *ExitAltScreen = "\033[?1049l";
+
+// Enable/disable line wrapping.
+constexpr const char *EnableWrap = "\033[?7h";
+constexpr const char *DisableWrap = "\033[?7l";
+
+// Set the terminal window title.
+inline std::string setWindowTitle(const std::string &title) {
+  return "\033]2;" + title + "\007";
+}
+} // namespace terminal
+
+// ----------------------------
+// Alerts and control characters
+// ----------------------------
+namespace alert {
+// Audible bell.
+constexpr const char *Bell = "\007";
+} // namespace alert
+
+namespace control {
+// Common control characters.
+constexpr const char *Tab = "\t";
+constexpr const char *Backspace = "\b";
+constexpr const char *CarriageReturn = "\r";
+constexpr const char *NewLine = "\n";
+constexpr const char *FormFeed = "\f";
+constexpr const char *VerticalTab = "\v";
+constexpr const char *Null = "\0";
+constexpr const char *Escape = "\033";
+} // namespace control
+
+// ----------------------------
+// Convenience utilities
+// ----------------------------
+
+// Reset the screen: clear entire screen and reset the cursor position.
+inline void resetScreen() {
+  std::cout << screen::Clear << cursor::ResetPosition;
+}
+
+// Compose a complete text style string from an effect, foreground, and optional
+// background. Example: std::cout << textStyle(text::ef::Bold, text::fo::Red,
+// text::bg::Black);
+inline std::string textStyle(const std::string &effect,
+                             const std::string &foreground,
+                             const std::string &background = "") {
+  return effect + foreground + background;
+}
+
+} // namespace cmds
+} // namespace dcon
+
+#endif // DCON_HPP
+
+
+
+
+
+
+incl\ext\key.hpp:
+
+#ifndef DCON_KEY_HPP
+#define DCON_KEY_HPP
+
+#include <vector>
+#if defined(_WIN32)
+#define WIN32_LEAN_AND_MEAN
+#define VC_EXTRALEAN
+#include <Windows.h>
+#else // assume Linux
+#include <sys/ioctl.h>
+#include <termios.h>
+#include <unistd.h>
+#include <time.h>
+#endif
+
+namespace dcon {
+namespace Key {
+
+// The key enumeration supports all possible key inputs.
+// Using an enum class ensures strong type-safety and scoped enumerators.
+enum class key : int {
+  BACKSPACE = 8,
+  TAB = 9,
+  NEWLINE = 10,
+  ESCAPE = 27,
+
+  SPACE = 32,
+  EXCLAMATION = 33,
+  DOUBLE_QUOTE = 34,
+  HASH = 35,
+  DOLLAR = 36,
+  PERCENT = 37,
+  AMPERSAND = 38,
+  SINGLE_QUOTE = 39,
+  OPEN_PAREN = 40,
+  CLOSE_PAREN = 41,
+  ASTERISK = 42,
+  PLUS = 43,
+  COMMA = 44,
+  MINUS = 45,
+  PERIOD = 46,
+  SLASH = 47,
+  ZERO = 48,
+  ONE = 49,
+  TWO = 50,
+  THREE = 51,
+  FOUR = 52,
+  FIVE = 53,
+  SIX = 54,
+  SEVEN = 55,
+  EIGHT = 56,
+  NINE = 57,
+  COLON = 58,
+  SEMICOLON = 59,
+  LESS_THAN = 60,
+  EQUAL = 61,
+  GREATER_THAN = 62,
+  QUESTION = 63,
+  AT = 64,
+  A = 65,
+  B = 66,
+  C = 67,
+  D = 68,
+  E = 69,
+  F = 70,
+  G = 71,
+  H = 72,
+  I = 73,
+  J = 74,
+  K = 75,
+  L = 76,
+  M = 77,
+  N = 78,
+  O = 79,
+  P = 80,
+  Q = 81,
+  R = 82,
+  S = 83,
+  T = 84,
+  U = 85,
+  V = 86,
+  W = 87,
+  X = 88,
+  Y = 89,
+  Z = 90,
+  OPEN_BRACKET = 91,
+  BACKSLASH = 92,
+  CLOSE_BRACKET = 93,
+  CARET = 94,
+  UNDERSCORE = 95,
+  BACKTICK = 96,
+  a = 97,
+  b = 98,
+  c = 99,
+  d = 100,
+  e = 101,
+  f = 102,
+  g = 103,
+  h = 104,
+  i = 105,
+  j = 106,
+  k = 107,
+  l = 108,
+  m = 109,
+  n = 110,
+  o = 111,
+  p = 112,
+  q = 113,
+  r = 114,
+  s = 115,
+  t = 116,
+  u = 117,
+  v = 118,
+  w = 119,
+  x = 120,
+  y = 121,
+  z = 122,
+  OPEN_BRACE = 123,
+  VERTICAL_BAR = 124,
+  CLOSE_BRACE = 125,
+  TILDE = 126,
+  DELETE_KEY = 127,
+
+  // Extended characters (from Linux mapping)
+  A_UMLAUT = 132,         // ä
+  U_UMLAUT = 129,         // ü
+  O_UMLAUT = 148,         // ö
+  CAPITAL_A_UMLAUT = 142, // Ä
+  CAPITAL_O_UMLAUT = 153, // Ö
+  CAPITAL_U_UMLAUT = 154, // Ü
+  SZ = 225,               // ß
+  MICRO = 230,            // µ
+  SECTION = 245,          // §
+  DEGREE = 248,           // °
+  TWO_SUPER = 253,        // ²
+  THREE_SUPER = 252,      // ³
+  ACUTE = 239,            // ´
+
+  // Special keys (non-printable, negative values)
+  UP_ARROW = -38,
+  DOWN_ARROW = -40,
+  LEFT_ARROW = -37,
+  RIGHT_ARROW = -39,
+  PAGE_UP = -33,
+  PAGE_DOWN = -34,
+  HOME = -36,
+  END = -35,
+  INSERT = -45,
+  NUM_LOCK = -144,
+  CAPS_LOCK = -20,
+  WINDOWS_KEY = -91,
+  CONTEXT_MENU_KEY = -93,
+  F1 = -112,
+  F2 = -113,
+  F3 = -114,
+  F4 = -115,
+  F5 = -116,
+  F6 = -117,
+  F7 = -118,
+  F8 = -119,
+  F9 = -120,
+  F10 = -121,
+  F11 = -122,
+  F12 = -123
+};
+
+// Helper function to check for modifier key events.
+// This filters out keys that represent shift, control, or alt keys (including left/right variants)
+// as well as a few extra cases that should be ignored.
+inline bool isModifierKey(int keyVal) {
+  return (keyVal == -16 || keyVal == -17 || keyVal == -18 || keyVal == -160 || keyVal == -161 || keyVal == -162 ||
+          keyVal == -163 || keyVal == -164 || keyVal == -165 || keyVal == -220 || keyVal == -221 || keyVal == -191 ||
+          keyVal == -52 || keyVal == -53 || keyVal == -54 || keyVal == -12);
+}
+
+// A simple sleep function (in seconds)
+inline void sleep(double t) {
+  if (t > 0.0) {
+#if defined(_WIN32)
+    Sleep((DWORD)(t * 1000));
+#elif defined(__linux__)
+    struct timespec req = {0};
+    req.tv_sec = (time_t)t;
+    req.tv_nsec = (long)((t - req.tv_sec) * 1e9);
+    nanosleep(&req, nullptr);
+#endif
+  }
+}
+
+#if defined(_WIN32)
+// --------------------------------------------------------------------------
+// Windows Implementation of "isKeyDown"
+// Uses the efficient GetAsyncKeyState API to check if the key is currently down.
+inline bool isKeyDown(key k) {
+  int keyVal = static_cast<int>(k);
+  // For special keys (stored as negative values) convert to the positive virtual key code.
+  if (keyVal < 0) keyVal = -keyVal;
+  return (GetAsyncKeyState(keyVal) & 0x8000) != 0;
+}
+#elif defined(__linux__)
+// --------------------------------------------------------------------------
+// Linux Implementation (Terminal Mode)
+// Due to limitations with non-graphical terminals, real-time key state detection is not available.
+// For a full implementation, consider integrating with X11, SDL, or ncurses.
+inline bool isKeyDown(key /*k*/) { return false; }
+
+// A RAII helper class to manage terminal mode changes for Linux.
+// It switches to non-canonical mode without echo, and restores the original settings on destruction.
+class TerminalSettings {
+public:
+  TerminalSettings() {
+    tcgetattr(0, &old_term);
+    term = old_term;
+    term.c_lflag &= ~(ICANON | ECHO);
+    tcsetattr(0, TCSANOW, &term);
+  }
+  ~TerminalSettings() { tcsetattr(0, TCSANOW, &old_term); }
+
+private:
+  struct termios old_term, term;
+};
+#endif
+
+// --------------------------------------------------------------------------
+// asyncGetCharV
+// Polls for key events and returns them in a vector.
+// (On Windows, only key-down events are processed; on Linux, terminal input is polled.)
+inline std::vector<key> asyncGetCharV() {
+  std::vector<key> keys;
+#if defined(_WIN32)
+  HANDLE hInput = GetStdHandle(STD_INPUT_HANDLE);
+  if (hInput == INVALID_HANDLE_VALUE) return keys;
+  DWORD numEvents = 0;
+  GetNumberOfConsoleInputEvents(hInput, &numEvents);
+  if (numEvents == 0) return keys;
+  std::vector<INPUT_RECORD> buffer(numEvents);
+  DWORD eventsRead = 0;
+  if (ReadConsoleInput(hInput, buffer.data(), numEvents, &eventsRead)) {
+    for (DWORD i = 0; i < eventsRead; i++) {
+      if (buffer[i].EventType == KEY_EVENT) {
+        // Process both key-down and key-up events if needed.
+        if (buffer[i].Event.KeyEvent.bKeyDown) {
+          int ca = static_cast<int>(buffer[i].Event.KeyEvent.uChar.AsciiChar);
+          int cv = static_cast<int>(buffer[i].Event.KeyEvent.wVirtualKeyCode);
+          int keyVal = (ca == 0 ? -cv : ca);
+          // Skip pure modifier events.
+          if (isModifierKey(keyVal)) continue;
+          // Remap specific keys.
+          if (keyVal == 13) keys.push_back(key::NEWLINE); // Map Enter to newline.
+          else if (keyVal == -46) keys.push_back(key::DELETE_KEY);
+          else if (keyVal == -49) keys.push_back(static_cast<key>(251));
+          // Skip control keys (0–26) except for BACKSPACE, TAB, NEWLINE.
+          else if (keyVal >= 0 && keyVal <= 26 && keyVal != static_cast<int>(key::BACKSPACE) &&
+                   keyVal != static_cast<int>(key::TAB) && keyVal != static_cast<int>(key::NEWLINE)) {
+            continue;
+          } else {
+            keys.push_back(static_cast<key>(keyVal));
+          }
+        }
+        // (Optionally, key-up events could be processed here to maintain a key state.)
+      }
+    }
+  }
+#elif defined(__linux__)
+  int nbbytes = 0;
+  ioctl(0, FIONREAD, &nbbytes);
+  if (nbbytes <= 0) return keys;
+  // Set terminal to non-canonical mode and ensure settings are restored automatically.
+  TerminalSettings termSettings;
+  while (true) {
+    ioctl(0, FIONREAD, &nbbytes);
+    if (nbbytes <= 0) break;
+    int ch = getchar();
+    int keyVal = ch;
+    if (ch == 27 || ch == 194 || ch == 195) { // potential escape sequences
+      int next = getchar();
+      if (next == 91) { // '[' following escape.
+        int third = getchar();
+        if (third == 49) { // F5–F8 sequence.
+          int fourth = getchar();
+          keyVal = 62 + fourth;
+          if (keyVal == 115) keyVal++;
+          getchar();              // Discard trailing '~'
+        } else if (third == 50) { // Insert or F9–F12 sequence.
+          int fourth = getchar();
+          if (fourth == 126) keyVal = 45; // Insert key.
+          else {
+            keyVal = fourth + 71;
+            if (keyVal < 121) keyVal++;
+            getchar(); // Discard trailing '~'
+          }
+        } else if (third == 51 || third == 53 || third == 54) {
+          getchar(); // Discard trailing '~'
+          keyVal = -third;
+        }
+      } else if (next == 79) { // F1–F4 sequence.
+        keyVal = 32 + getchar();
+      }
+      keyVal = -keyVal;
+    }
+    // Remap keys to match the key values.
+    switch (keyVal) {
+    case 127: keyVal = 8; break; // Map delete to backspace.
+    case -27: keyVal = 27; break;
+    case -51: keyVal = 127; break;
+    case -164: keyVal = 132; break; // ä.
+    case -182: keyVal = 148; break; // ö.
+    case -188: keyVal = 129; break; // ü.
+    case -132: keyVal = 142; break; // Ä.
+    case -150: keyVal = 153; break; // Ö.
+    case -156: keyVal = 154; break; // Ü.
+    case -159: keyVal = 225; break; // ß.
+    case -181: keyVal = 230; break; // µ.
+    case -167: keyVal = 245; break; // §.
+    case -176: keyVal = 248; break; // °.
+    case -178: keyVal = 253; break; // ².
+    case -179: keyVal = 252; break; // ³.
+    case -180: keyVal = 239; break; // ´.
+    case -65: keyVal = -38; break;  // Up arrow.
+    case -66: keyVal = -40; break;  // Down arrow.
+    case -68: keyVal = -37; break;  // Left arrow.
+    case -67: keyVal = -39; break;  // Right arrow.
+    case -53: keyVal = -33; break;  // Page up.
+    case -54: keyVal = -34; break;  // Page down.
+    case -72: keyVal = -36; break;  // Home.
+    case -70: keyVal = -35; break;  // End.
+    default: break;
+    }
+    // Skip any pure modifier events.
+    if (isModifierKey(keyVal)) continue;
+    // Skip control keys (0–26) except BACKSPACE, TAB, or NEWLINE.
+    if (keyVal >= 0 && keyVal <= 26 && keyVal != static_cast<int>(key::BACKSPACE) &&
+        keyVal != static_cast<int>(key::TAB) && keyVal != static_cast<int>(key::NEWLINE))
+      continue;
+    keys.push_back(static_cast<key>(keyVal));
+  }
+#endif
+  return keys;
+}
+
+} // namespace Key
+} // namespace dcon
+
+#endif // DCON_KEY_HPP
+
+
+
+
+
+
+incl\ext\random.h:
+
+#ifndef RANDOM_MT_H
+#define RANDOM_MT_H
+
+#include <chrono>
+#include <random>
+
+// This header-only Random namespace implements a self-seeding Mersenne Twister.
+// Requires C++17 or newer.
+// It can be #included into as many code files as needed (The inline keyword avoids ODR violations)
+// Freely redistributable, courtesy of learncpp.com (https://www.learncpp.com/cpp-tutorial/global-random-numbers-random-h/)
+namespace Random
+{
+	// Returns a seeded Mersenne Twister
+	// Note: we'd prefer to return a std::seed_seq (to initialize a std::mt19937), but std::seed can't be copied, so it can't be returned by value.
+	// Instead, we'll create a std::mt19937, seed it, and then return the std::mt19937 (which can be copied).
+	inline std::mt19937 generate()
+	{
+		std::random_device rd{};
+
+		// Create seed_seq with clock and 7 random numbers from std::random_device
+		std::seed_seq ss{
+			static_cast<std::seed_seq::result_type>(std::chrono::steady_clock::now().time_since_epoch().count()),
+				rd(), rd(), rd(), rd(), rd(), rd(), rd() };
+
+		return std::mt19937{ ss };
+	}
+
+	// Here's our global std::mt19937 object.
+	// The inline keyword means we only have one global instance for our whole program.
+	inline std::mt19937 mt{ generate() }; // generates a seeded std::mt19937 and copies it into our global object
+
+	// Generate a random int between [min, max] (inclusive)
+	inline int get(int min, int max)
+	{
+		return std::uniform_int_distribution{min, max}(mt);
+	}
+
+	// The following function templates can be used to generate random numbers
+	// when min and/or max are not type int
+	// See https://www.learncpp.com/cpp-tutorial/function-template-instantiation/
+	// You can ignore these if you don't understand them
+
+	// Generate a random value between [min, max] (inclusive)
+	// * min and max have same type
+	// * Return value has same type as min and max
+	// * Supported types:
+	// *    short, int, long, long long
+	// *    unsigned short, unsigned int, unsigned long, or unsigned long long
+	// Sample call: Random::get(1L, 6L);             // returns long
+	// Sample call: Random::get(1u, 6u);             // returns unsigned int
+	template <typename T>
+	T get(T min, T max)
+	{
+		return std::uniform_int_distribution<T>{min, max}(mt);
+	}
+
+	// Generate a random value between [min, max] (inclusive)
+	// * min and max can have different types
+	// * Must explicitly specify return type as template type argument
+	// * min and max will be converted to the return type
+	// Sample call: Random::get<std::size_t>(0, 6);  // returns std::size_t
+	// Sample call: Random::get<std::size_t>(0, 6u); // returns std::size_t
+	// Sample call: Random::get<std::int>(0, 6u);    // returns int
+	template <typename R, typename S, typename T>
+	R get(S min, T max)
+	{
+		return get<R>(static_cast<R>(min), static_cast<R>(max));
+	}
+}
+
+#endif
+
+
+
+
+
+
+incl\ext\Timer.hpp:
+
+#ifndef TIMER_H
+#define TIMER_H
+
+#include <chrono>
+
+// Uncomment the next line if you want to use high_resolution_clock instead of steady_clock
+// #define USE_HIGH_RES_CLOCK
+
+class Timer {
+public:
+#ifdef USE_HIGH_RES_CLOCK
+  using Clock = std::chrono::high_resolution_clock;
+#else
+  using Clock = std::chrono::steady_clock;
+#endif
+  using TimePoint = typename Clock::time_point;
+
+  // Constructor: initialize timer start point.
+  Timer() noexcept : m_start(Clock::now()) {}
+
+  // Reset the timer without returning the elapsed time.
+  void reset() noexcept { m_start = Clock::now(); }
+
+  // Returns the elapsed time since the last reset.
+  // The default duration is std::chrono::duration<double> for sub-second precision.
+  template <typename Duration = std::chrono::duration<double>>
+  double elapsed() const noexcept {
+    return std::chrono::duration_cast<Duration>(Clock::now() - m_start).count();
+  }
+
+  // Lap: Returns the elapsed time since the last reset and resets the timer.
+  double lap() noexcept {
+    auto now = Clock::now();
+    auto elapsedTime = std::chrono::duration_cast<std::chrono::duration<double>>(now - m_start).count();
+    m_start = now;
+    return elapsedTime;
+  }
+
+private:
+  TimePoint m_start;
+};
+
+#endif // TIMER_H
+
+
+
+
+
+
+incl\manager\Handler.cpp:
+
+#include "Handler.hpp"
+#include "Renderer.hpp"
+#include "../ext/Timer.hpp"
+#include "Screen.hpp"
+#include <iostream>
+
+void Handler::RemoveObject(size_t ID) {
+  // std::lock_guard<std::mutex> LG{renderMutex};
+  for (auto it = objpointer.begin(); it != objpointer.end(); ++it) {
+    if ((*it)->ID == ID) {
+      objpointer.erase(it);
+      return;
+    }
+  }
+}
+
+std::shared_ptr<DefaultObj> Handler::GetObject(size_t ID) {
+  for (auto &obj : objpointer) {
+    if (obj->ID == ID) return obj;
+  }
+  throw "ID not found";
+}
+
+bool Handler::isInDespawnRange(const std::shared_ptr<DefaultObj> &obj) {
+  const Point3D &origin = obj->Origin;
+  float despawn = obj->DespawnRad;
+  return origin.x < -despawn || origin.y < -despawn || origin.x > (renderer.getWidth() + despawn) ||
+         origin.y > (renderer.getHeight() + despawn);
+}
+
+void Handler::Runner() {
+  Timer timer{};
+#ifdef d_DEBUG
+  Timer FrameT{};
+  size_t outp{0}, FrameRateCounter{0};
+#endif
+
+  while (true) {
+    if (run) {
+      timer.reset();
+      {
+        std::lock_guard<std::mutex> LG{renderMutex};
+        for (auto it = objpointer.begin(); it != objpointer.end();) {
+          // Remove the object if it is off-screen or expired.
+          if ((*it)->isExpired() || isInDespawnRange(*it)) it = objpointer.erase(it);
+          else {
+            (*it)->onFrame(deltaT);
+            ++it;
+          }
+        }
+        renderer.DrawScreen();
+#ifdef d_DEBUG
+        std::cout << dcon::cmds::screen::ClearLine << "Frames: " << outp << '/' << targetFrameRate
+                  << " SumObjects: " << objpointer.size();
+#endif
+      }
+      deltaT = timer.lap();
+      static double frameDuration = 1.0 / targetFrameRate;
+      if (deltaT < frameDuration) {
+        auto sleepDuration = std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::duration<double>(frameDuration - deltaT));
+        std::this_thread::sleep_for(sleepDuration);
+      }
+#ifdef d_DEBUG
+      ++FrameRateCounter;
+      if (FrameT.elapsed() > 1) {
+        outp = FrameRateCounter;
+        FrameRateCounter = 0;
+        FrameT.reset();
+      }
+#endif
+    } else {
+      std::this_thread::sleep_for(std::chrono::milliseconds(30));
+    }
+  }
+}
+
+// #include "Handler.hpp"
+// #include "Renderer.hpp"
+// #include "../ext/Timer.hpp"
+// #include "Screen.hpp"
+// #include <iostream>
+
+// void Handler::RemoveObject(size_t ID) {
+//   std::lock_guard<std::mutex> LG{renderMutex};
+//   for (auto it = objpointer.begin(); it != objpointer.end(); ++it) {
+//     if (it->getID() == ID) {
+//       objpointer.erase(it);
+//       return;
+//     }
+//   }
+// }
+
+// basicObj &Handler::GetObject(size_t ID) {
+//   for (auto &obj : objpointer) {
+//     if (obj.getID() == ID) return obj;
+//   }
+//   throw "ID not found";
+// }
+
+// bool Handler::isInDespawnRange(basicObj &obj) {
+//   const Point3D &origin = obj.getOrigin();
+//   float despawn = obj.getDespawnRad();
+//   return origin.x < -despawn || origin.y < -despawn || origin.x > (renderer.getWidth() + despawn) ||
+//          origin.y > (renderer.getHeight() + despawn);
+// }
+
+// void Handler::Runner() {
+//   Timer timer{};
+// #ifdef d_DEBUG
+//   Timer FrameT{};
+//   size_t outp{0}, FrameRateCounter{0};
+// #endif
+
+//   while (true) {
+//     if (run) {
+//       timer.reset();
+//       {
+//         std::lock_guard<std::mutex> LG{renderMutex};
+//         for (auto it = objpointer.begin(); it != objpointer.end();) {
+//           if (isInDespawnRange(*it)) it = objpointer.erase(it);
+//           else {
+//             it->onFrame(deltaT);
+//             ++it;
+//           }
+//         }
+//         renderer.DrawScreen();
+// #ifdef d_DEBUG
+//         std::cout << dcon::cmds::screen::ClearLine << "Frames: " << outp << '/' << targetFrameRate
+//                   << " SumObjects: " << objpointer.size();
+// #endif
+//       }
+//       deltaT = timer.lap();
+//       static double frameDuration = 1.0 / targetFrameRate;
+//       if (deltaT < frameDuration) {
+//         auto sleepDuration = std::chrono::duration_cast<std::chrono::milliseconds>(
+//             std::chrono::duration<double>(frameDuration - deltaT));
+//         std::this_thread::sleep_for(sleepDuration);
+//       }
+// #ifdef d_DEBUG
+//       ++FrameRateCounter;
+//       if (FrameT.elapsed() > 1) {
+//         outp = FrameRateCounter;
+//         FrameRateCounter = 0;
+//         FrameT.reset();
+//       }
+// #endif
+//     } else {
+//       std::this_thread::sleep_for(std::chrono::milliseconds(30));
+//     }
+//   }
+// }
+
+
+
+
+
+
+incl\manager\Handler.hpp:
+
+#pragma once
+#include "Renderer.hpp"
+#include "../ext/consComm.hpp"
+#include "../general.hpp"
+#include <chrono>
+#include <cstddef>
+#include <memory>
+#include <thread>
+#include <mutex>
+#include <vector>
+#include "../objects/DefaultObj.hpp"
+
+class Handler {
+private:
+  Renderer renderer;
+  bool run{false};
+  void Runner();
+  std::mutex renderMutex{};
+
+  // Check if an object is outside the renderable range.
+  bool isInDespawnRange(const std::shared_ptr<DefaultObj> &obj);
+
+public:
+  // Our container now holds polymorphic DefaultObj objects.
+  std::vector<std::shared_ptr<DefaultObj>> objpointer{};
+  float deltaT{0};
+  unsigned int targetFrameRate{180};
+
+  Handler(unsigned int width, unsigned int height) : renderer(width, height, objpointer) {
+    enableUtf8Console();
+    std::cout << dcon::cmds::cursor::Hide << dcon::cmds::screen::Clear << dcon::cmds::cursor::ResetPosition;
+    std::thread([&]() { Runner(); }).detach();
+  }
+  ~Handler() {
+    Render(false);
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    std::cout << dcon::cmds::text::Reset << dcon::cmds::screen::Clear << dcon::cmds::cursor::ResetPosition
+              << dcon::cmds::cursor::Show;
+  }
+
+  template <typename T>
+  std::shared_ptr<T> AddObject(T &&obj) { // Deduce T from the provided object and decay it.
+    auto ptr = std::make_shared<std::decay_t<T>>(std::forward<T>(obj));
+    objpointer.push_back(ptr);
+    return ptr;
+  }
+  template <typename T, typename... Args>
+  std::shared_ptr<T> AddObjectConstruct(Args &&...args) {
+    static_assert(std::is_base_of_v<DefaultObj, T>, "T must derive from DefaultObj");
+    auto ptr = std::make_shared<T>(std::forward<Args>(args)...);
+    objpointer.push_back(ptr);
+    return ptr;
+  }
+  // template <typename T, typename... Args>
+  // std::shared_ptr<DefaultObj> AddObject(Args &&...args) {
+  //   auto ptr = std::make_shared<T>(std::forward<Args>(args)...);
+  //   objpointer.push_back(ptr);
+  //   return ptr;
+  // }
+  // // Template AddObject to allow adding any DefaultObj-derived type.
+  // template <typename T>
+  // std::shared_ptr<DefaultObj> AddObject(T &&obj) {
+  //   // std::lock_guard<std::mutex> LG{renderMutex};
+  //   auto ptr = std::make_shared<T>(std::forward<T>(obj));
+  //   objpointer.push_back(ptr);
+  //   return ptr;
+  // }
+
+  void RemoveObject(size_t ID);
+  std::shared_ptr<DefaultObj> GetObject(size_t ID);
+  void Render(bool state = true) { run = state; }
+};
+
+// #pragma once
+
+// #include "Renderer.hpp"
+// #include "../ext/consComm.hpp"
+// #include "../general.hpp"
+// #include <chrono>
+// #include <cstddef>
+// #include <memory>
+// #include <thread>
+// #include <mutex>
+// #include <vector>
+// #include "../objects/basicObj.hpp"
+
+// class Handler {
+// private:
+//   Renderer renderer;
+//   bool run{false};
+//   void Runner();
+//   std::mutex renderMutex{};
+
+//   // Check if an object is outside the renderable range.
+//   bool isInDespawnRange(basicObj &obj);
+
+// public:
+//   // Our container now holds type-erased basicObj wrappers.
+//   std::vector<basicObj> objpointer{};
+//   float deltaT{0};
+//   unsigned int targetFrameRate{180};
+
+//   Handler(unsigned int width, unsigned int height) : renderer(width, height, objpointer) {
+//     enableUtf8Console();
+//     std::cout << dcon::cmds::cursor::Hide << dcon::cmds::screen::Clear << dcon::cmds::cursor::ResetPosition;
+//     std::thread([&]() { Runner(); }).detach();
+//   }
+//   ~Handler() {
+//     Render(false);
+//     std::this_thread::sleep_for(std::chrono::milliseconds(50));
+//     std::cout << dcon::cmds::text::Reset << dcon::cmds::screen::Clear << dcon::cmds::cursor::ResetPosition
+//               << dcon::cmds::cursor::Show;
+//   }
+
+//   // Template AddObject to allow adding any Drawable type.
+//   template <typename T>
+//   basicObj &AddObject(T &&obj) {
+//     objpointer.emplace_back(obj);
+//     return objpointer.back();
+//   }
+
+//   void RemoveObject(size_t ID);
+//   basicObj &GetObject(size_t ID);
+//   void Render(bool state = true) { run = state; }
+// };
+
+
+
+
+
+
+incl\manager\Renderer.cpp:
+
+// #include "Renderer.hpp"
+// #include "Screen.hpp"
+// #include <iostream>
+
+// void Renderer::DrawScreen() {
+//   screen.clear();
+//   for (auto &obj : objpointer)
+//     obj.howDraw(screen);
+//   screen.WriteBuffer();
+//   std::cout << screen.printbuf.rdbuf();
+// }
+
+#include "Renderer.hpp"
+#include "Screen.hpp"
+#include <iostream>
+
+void Renderer::DrawScreen() {
+  screen.clear();
+  for (auto &obj : objpointer)
+    obj->howDraw(screen);
+  screen.WriteBuffer();
+  std::cout << screen.printbuf.rdbuf();
+}
+
+
+
+
+
+
+incl\manager\Renderer.hpp:
+
+#pragma once
+#include "Screen.hpp"
+#include <vector>
+#include <memory>
+#include "../objects/DefaultObj.hpp"
+
+class Renderer {
+  Screen screen;
+  std::vector<std::shared_ptr<DefaultObj>> &objpointer;
+
+public:
+  void DrawScreen();
+
+  Renderer(unsigned int width, unsigned int height, std::vector<std::shared_ptr<DefaultObj>> &Objpointer) :
+      screen(width, height), objpointer(Objpointer) {}
+
+  constexpr unsigned int getWidth() const { return screen.m_width; }
+  constexpr unsigned int getHeight() const { return screen.m_height; }
+};
+
+// #pragma once
+
+// #include "Screen.hpp"
+// #include <vector>
+// #include "../objects/basicObj.hpp"
+
+// class Renderer {
+//   Screen screen;
+//   std::vector<basicObj> &objpointer;
+
+// public:
+//   void DrawScreen();
+
+//   Renderer(unsigned int width, unsigned int height, std::vector<basicObj> &Objpointer) :
+//       screen(width, height), objpointer(Objpointer) {}
+
+//   constexpr unsigned int getWidth() const { return screen.m_width; }
+//   constexpr unsigned int getHeight() const { return screen.m_height; }
+// };
+
+
+
+
+
+
+incl\manager\Screen.cpp:
+
+#include "Screen.hpp"
+#include "..//ext/consComm.hpp"
+#include "src/incl/ext/consComm.hpp"
+#include <cstddef>
+#include <sstream>
+
+void Screen::clear() {
+  printbuf = {};
+  printbuf << dcon::cmds::text::Reset << dcon::cmds::cursor::ResetPosition;
+  for (auto &i : framebuffer)
+    i.reset();
+}
+
+void Screen::WriteBuffer() {
+  for (size_t i{0}; i < framebuffer.size(); ++i) {
+    framebuffer[i].AddToPrintBuf(printbuf);
+    if (((i + 1) % m_width) == 0) printbuf << dcon::cmds::text::Reset << '\n';
+  }
+}
+ScreenCell &Screen::get(unsigned int X, unsigned int Y) {
+  if ((X >= m_width) || (Y >= m_height)) throw "tried to access screenBuffer out of range";
+  else return framebuffer[X + m_width * Y];
+}
+
+
+
+
+
+incl\manager\Screen.hpp:
+
+#pragma once
+#include "../types/cell/ScreenCell.hpp"
+#include <sstream>
+#include <vector>
+
+class Renderer;
+class Screen {
+public:
+  const unsigned int m_width;
+  const unsigned int m_height;
+  std::vector<ScreenCell> framebuffer{};
+
+  Screen(const unsigned int width, const unsigned int height) :
+      m_width{width}, m_height{height}, framebuffer(width * height) {}
+
+  friend Renderer;
+  ScreenCell &get(unsigned int X, unsigned int Y);
+
+protected:
+  void clear();
+  void WriteBuffer();
+  std::stringstream printbuf{};
+};
+
+
+
+
+
+incl\objects\BackgroundS.cpp:
+
+#include "BackgroundS.hpp"
+#include "../types/cell/ScreenCell.hpp"
+#include "../general.hpp"
+
+// void backG::onFrame(float deltaT) {}
+
+// void backG::howDraw(Screen &screen) {
+
+//   for (unsigned int x{(unsigned int)Start.x}; x < (unsigned int)End.x || x < screen.m_width; ++x)
+//     for (unsigned int y{(unsigned int)Start.y}; y < (unsigned int)End.y || y < screen.m_height; ++y) {
+//       auto &a{screen.get(x, y)};
+//       if (a.bgColorZ < Z) a.setbgColor(Color, Z);
+//     }
+// }
+
+#include <algorithm> // For std::min and std::max
+
+void backgroundS::onFrame(float deltaT) {} // No per-frame updates for a static background.
+
+void backgroundS::howDraw(Screen &screen) { // Compute effective coordinates relative to the object's origin.
+  Point3D effectiveStart = Origin + Start;
+  Point3D effectiveEnd = Origin + End;
+
+  // Determine the top - left and bottom - right corners of the region.
+  float left = std::min(effectiveStart.x, effectiveEnd.x);
+  float top = std::min(effectiveStart.y, effectiveEnd.y);
+  float right = std::max(effectiveStart.x, effectiveEnd.x);
+  float bottom = std::max(effectiveStart.y, effectiveEnd.y);
+
+  // Clamp coordinates to the
+  //     screen's dimensions. // Assuming screen coordinates start at 0.
+  unsigned int x0 = static_cast<unsigned int>(std::max(0.0f, left));
+  unsigned int y0 = static_cast<unsigned int>(std::max(0.0f, top));
+  unsigned int x1 = static_cast<unsigned int>(std::min(right, static_cast<float>(screen.m_width)));
+  unsigned int y1 = static_cast<unsigned int>(std::min(bottom, static_cast<float>(screen.m_height)));
+  // Iterate over the region and set the
+  //     cell's background color if its z-index is lower.
+  for (unsigned int x = x0; x < x1; ++x) {
+    for (unsigned int y = y0; y < y1; ++y) {
+      auto &cell = screen.get(x, y);
+      if (cell.bgColorZ < Z) cell.setbgColor(Color, Z);
+    }
+  }
+}
+
+
+
+
+
+incl\objects\BackgroundS.hpp:
+
+#pragma once
+
+#include "DefaultObj.hpp"
+#include "src/incl/types/Point3D.hpp"
+
+class backgroundS : public DefaultObj {
+public:
+  Point3D Start, End;
+  float Z;
+
+  backgroundS(const Color256 &color, const Point3D &end = {0, 0}, const Point3D &start = {0, 0}, const float z = -1,
+              const Point3D origin = {}) : DefaultObj(origin, {}, color), Start(start), End{end}, Z{z} {}
+
+  void onFrame(float deltaT) override;
+  void howDraw(Screen &screen) override;
+  constexpr float getWidth() const { return (End.x >= Start.x) ? (End.x - Start.x) : (Start.x - End.x); }
+  constexpr float getHeight() const { return (End.y >= Start.y) ? (End.y - Start.y) : (Start.y - End.y); }
+};
+
+
+
+
+
+
+incl\objects\DefaultObj.hpp:
+
+#pragma once
+
+#include "../types/Point3D.hpp"
+#include "../types/color/color256.hpp"
+#include "../manager/Screen.hpp"
+#include <cstddef>
+
+class DefaultObj {
+public:
+  Point3D Origin, Velocity;
+  Color256 Color;
+  float DespawnRad;
+  size_t ID;
+
+  DefaultObj(const Point3D &origin = {}, const Point3D &velocity = {}, const Color256 &color = {},
+             float despawnRad = 0) : Origin(origin), Velocity(velocity), Color(color), DespawnRad(despawnRad) {
+    static size_t maxID = 0;
+    ID = ++maxID;
+  }
+  virtual ~DefaultObj() = default;
+
+  // Update the object (e.g. physics, lifetime, etc.)
+  virtual void onFrame(float deltaT) = 0;
+
+  // Draw the object on the screen.
+  virtual void howDraw(Screen &screen) = 0;
+
+  // By default, an object does not expire.
+  virtual bool isExpired() const { return false; }
+};
+
+
+
+
+
+
+incl\objects\Particle.cpp:
+
+#include "Particle.hpp"
+#include "../types/cell/ScreenCell.hpp"
+#include "../general.hpp"
+
+Particle::Particle(const Point3D &origin, const Point3D &velocity, const Color256 &color, float despawnRad,
+                   float lifetime) : DefaultObj(origin, velocity, color, despawnRad), lifetime(lifetime) {}
+
+void Particle::onFrame(float deltaT) {
+  // Decrement lifetime.
+  lifetime -= deltaT;
+  // Update position (applying gravity, for example).
+  Velocity += dCosnt::GravV * deltaT * 0.1f;
+  Origin += Velocity;
+}
+
+void Particle::howDraw(Screen &screen) {
+  // A simple way to choose a representation based on fractional parts of the position.
+  const float floorX = Origin.x - static_cast<int>(Origin.x);
+  const float floorY = Origin.y - static_cast<int>(Origin.y);
+  int out = 0;
+  if (floorX > 0.5f) out += 3;
+  if (floorY > 0.75f) out = (out == 3) ? 7 : 6;
+  else if (floorY > 0.5f) out += 2;
+  else out += 1;
+
+  try {
+    auto &cell = screen.get(static_cast<unsigned int>(Origin.x), static_cast<unsigned int>(Origin.y));
+    cell.repres.show(1 << out);
+    cell.color.blend(Color);
+  } catch (...) {
+    // Ignore out-of-range drawing.
+  }
+}
+
+bool Particle::isExpired() const { return lifetime <= 0; }
+
+
+
+
+
+
+incl\objects\Particle.hpp:
+
+#pragma once
+
+#include "DefaultObj.hpp"
+
+class Particle : public DefaultObj {
+public:
+  float lifetime; // Lifetime in seconds
+
+  Particle(const Point3D &origin, const Point3D &velocity, const Color256 &color, float despawnRad, float lifetime);
+
+  void onFrame(float deltaT) override;
+  void howDraw(Screen &screen) override;
+  bool isExpired() const override;
+};
+
+
+
+
+
+
+incl\objects\text.cpp:
+
+#include "text.hpp"
+#include "../types/cell/ScreenCell.hpp"
+#include "../general.hpp"
+#include <cstddef>
+
+void text::onFrame([[maybe_unused]] float deltaT) {}
+
+void text::howDraw(Screen &screen) {
+  // switch (align) {
+  // case text::alignment::center:
+  // case text::alignment::left:
+  // case text::alignment::right:
+  // }
+  unsigned int psX{0}, psY{0};
+  for (char i : content) {
+    if (i == '\n') {
+      ++psY;
+      psX = 0;
+    } else {
+      auto &a{screen.get(Origin.x + psX, Origin.y + psY)};
+      if (a.bgColorZ <= Origin.z) a.setbgColor(BackgroundCol, Origin.z);
+      if (a.colorZ <= Origin.z) a.setColor(Color, Origin.z);
+      if (a.repres.zpos <= Origin.z) a.repres.setChar(content, Origin.z);
+    }
+  }
+}
+
+bool text::isExpired() const { return lifetime <= 0; }
+
+
+
+
+
+incl\objects\text.hpp:
+
+#pragma once
+
+#include "DefaultObj.hpp"
+#include "src/incl/types/color/color256.hpp"
+#include <cstdint>
+#include <limits>
+#include <string_view>
+
+class text : public DefaultObj {
+public:
+  enum alignment : uint8_t {
+    center = 0,
+    left,
+    right,
+  };
+  uint8_t align;
+  std::string content;
+  Color256 BackgroundCol;
+  float lifetime; // in seconds
+
+  text(const std::string_view Text = "", const alignment Alignment = center, const Point3D &origin = {},
+       const Point3D &velocity = {}, const Color256 &color = {255, 255, 255, 255},
+       const Color256 &bgColor = {0, 0, 0, 255}, float despawnRad = 0,
+       float Lifetime = std::numeric_limits<float>::max()) :
+      DefaultObj(origin, velocity, color, despawnRad), align{Alignment}, content{Text}, BackgroundCol{bgColor},
+      lifetime{Lifetime} {}
+
+  void onFrame(float deltaT) override;
+  void howDraw(Screen &screen) override;
+  bool isExpired() const override;
+};
+
+
+
+
+
+
+incl\types\Point3D.hpp:
+
+#pragma once
+#include <cassert>
+
+//-----------------------------------------------------------------------------
+// Approximate factorial at compile time (used for the series expansion).
+//-----------------------------------------------------------------------------
+constexpr float factorial(int n) { return (n <= 1) ? 1.0f : (n * factorial(n - 1)); }
+
+//-----------------------------------------------------------------------------
+// Approximate e^x at compile time using a truncated power series:
+//   e^x = 1 + x + x^2 / 2! + x^3 / 3! + ... (up to `terms`).
+//-----------------------------------------------------------------------------
+constexpr float constexpr_exp(float x, int terms = 10) {
+  float sum = 1.0f;  // n=0 => x^0 / 0! = 1
+  float term = 1.0f; // Current term in the series
+  for (int i = 1; i < terms; ++i) {
+    term *= x / static_cast<float>(i); // x^i / i!
+    sum += term;
+  }
+  return sum;
+}
+
+//-----------------------------------------------------------------------------
+// Approximate square root at compile time using Newton-Raphson.
+//-----------------------------------------------------------------------------
+constexpr float constexpr_sqrt(float x, int iterations = 10) {
+  if (x <= 0.0f) return 0.0f;
+  float guess = x;
+  for (int i = 0; i < iterations; ++i) {
+    guess = 0.5f * (guess + x / guess);
+  }
+  return guess;
+}
+
+struct Point3D {
+  float x, y, z;
+
+  //-------------------------------------------------------------------------
+  // Constructors
+  //-------------------------------------------------------------------------
+  constexpr Point3D(float X = 0, float Y = 0, float Z = 0) : x(X), y(Y), z(Z) {}
+  constexpr Point3D(const Point3D &other) = default;
+  constexpr Point3D &operator=(const Point3D &other) = default;
+
+  //-------------------------------------------------------------------------
+  // Comparison
+  //-------------------------------------------------------------------------
+  constexpr bool operator==(const Point3D &other) const { return (x == other.x && y == other.y && z == other.z); }
+  constexpr bool operator!=(const Point3D &other) const { return !(*this == other); }
+
+  //-------------------------------------------------------------------------
+  // Arithmetic operators with Point3D
+  //-------------------------------------------------------------------------
+  constexpr Point3D operator+(const Point3D &other) const { return Point3D(x + other.x, y + other.y, z + other.z); }
+  constexpr Point3D operator-(const Point3D &other) const { return Point3D(x - other.x, y - other.y, z - other.z); }
+  constexpr Point3D operator*(float scalar) const { return Point3D(x * scalar, y * scalar, z * scalar); }
+  constexpr Point3D operator/(float scalar) const { return Point3D(x / scalar, y / scalar, z / scalar); }
+
+  //-------------------------------------------------------------------------
+  // Compound assignment operators
+  //-------------------------------------------------------------------------
+  constexpr Point3D &operator+=(const Point3D &other) {
+    x += other.x;
+    y += other.y;
+    z += other.z;
+    return *this;
+  }
+  constexpr Point3D &operator-=(const Point3D &other) {
+    x -= other.x;
+    y -= other.y;
+    z -= other.z;
+    return *this;
+  }
+  constexpr Point3D &operator*=(float scalar) {
+    x *= scalar;
+    y *= scalar;
+    z *= scalar;
+    return *this;
+  }
+  constexpr Point3D &operator/=(float scalar) {
+    x /= scalar;
+    y /= scalar;
+    z /= scalar;
+    return *this;
+  }
+
+  //-------------------------------------------------------------------------
+  // Arithmetic operators with a single scalar
+  //-------------------------------------------------------------------------
+  constexpr Point3D operator+(float value) const { return Point3D(x + value, y + value, z + value); }
+  constexpr Point3D operator-(float value) const { return Point3D(x - value, y - value, z - value); }
+  constexpr Point3D &operator+=(float value) {
+    x += value;
+    y += value;
+    z += value;
+    return *this;
+  }
+  constexpr Point3D &operator-=(float value) {
+    x -= value;
+    y -= value;
+    z -= value;
+    return *this;
+  }
+
+  //-------------------------------------------------------------------------
+  // Unary negation
+  //-------------------------------------------------------------------------
+  constexpr Point3D operator-() const { return Point3D(-x, -y, -z); }
+
+  //-------------------------------------------------------------------------
+  // Indexing operators (with bounds checking)
+  //-------------------------------------------------------------------------
+  constexpr float operator[](int index) const {
+    assert(index >= 0 && index < 3 && "Index out of bounds");
+    return (index == 0 ? x : (index == 1 ? y : z));
+  }
+  float &operator[](int index) {
+    assert(index >= 0 && index < 3 && "Index out of bounds");
+    return (index == 0 ? x : (index == 1 ? y : z));
+  }
+
+  //-------------------------------------------------------------------------
+  // Data pointer access
+  //-------------------------------------------------------------------------
+  constexpr const float *data() const { return &x; }
+  float *data() { return &x; }
+
+  //-------------------------------------------------------------------------
+  // Magnitude (length) and squaredMagnitude
+  //-------------------------------------------------------------------------
+  constexpr float magnitude() const { return constexpr_sqrt(x * x + y * y + z * z); }
+  constexpr float squaredMagnitude() const { return (x * x + y * y + z * z); }
+
+  //-------------------------------------------------------------------------
+  // Distance to another point
+  //-------------------------------------------------------------------------
+  constexpr float distanceTo(const Point3D &other) const {
+    float dx = x - other.x;
+    float dy = y - other.y;
+    float dz = z - other.z;
+    return constexpr_sqrt(dx * dx + dy * dy + dz * dz);
+  }
+
+  //-------------------------------------------------------------------------
+  // Normalize (returns a unit vector in the same direction)
+  //-------------------------------------------------------------------------
+  constexpr Point3D normalized() const {
+    float mag = magnitude();
+    return (mag == 0.0f) ? Point3D(0.0f, 0.0f, 0.0f) : (*this / mag);
+  }
+
+  //-------------------------------------------------------------------------
+  // Dot product
+  //-------------------------------------------------------------------------
+  constexpr float dot(const Point3D &other) const { return (x * other.x + y * other.y + z * other.z); }
+
+  //-------------------------------------------------------------------------
+  // Cross product
+  //-------------------------------------------------------------------------
+  constexpr Point3D cross(const Point3D &other) const {
+    return Point3D(y * other.z - z * other.y, z * other.x - x * other.z, x * other.y - y * other.x);
+  }
+
+  //-------------------------------------------------------------------------
+  // LINEAR LERP
+  //   Static version: Point3D::linearLerp(a, b, t)
+  //   Member version: a.linearLerp(b, t)
+  //-------------------------------------------------------------------------
+  constexpr static Point3D linearLerp(const Point3D &a, const Point3D &b, float t) { return a * (1.0f - t) + b * t; }
+  constexpr Point3D linearLerp(const Point3D &target, float t) const {
+    // 'this' is the "a" in the equation
+    return (*this) * (1.0f - t) + target * t;
+  }
+  constexpr Point3D &linearLerpAssign(const Point3D &target, float t) {
+    *this = (*this) * (1.0f - t) + target * t;
+    return *this;
+  }
+
+  //-------------------------------------------------------------------------
+  // EXPONENTIAL DECAY
+  //   Static version: Point3D::expDecay(a, b, decay, dt)
+  //   Member version: a.expDecay(b, decay, dt)
+  //
+  //   Moves 'a' toward 'b' by factor e^(-decay * dt).
+  //-------------------------------------------------------------------------
+  constexpr static Point3D expDecay(const Point3D &a, const Point3D &b, float decay, float dt, int expTerms = 10) {
+    return b + (a - b) * constexpr_exp(-decay * dt, expTerms);
+  }
+  constexpr Point3D expDecay(const Point3D &target, float decay, float dt, int expTerms = 10) const {
+    // 'this' is the "a" in the equation
+    return target + ((*this) - target) * constexpr_exp(-decay * dt, expTerms);
+  }
+  constexpr Point3D &expDecayAssign(const Point3D &target, float decay, float dt, int expTerms = 10) {
+    *this = target + ((*this) - target) * constexpr_exp(-decay * dt, expTerms);
+    return *this;
+  }
+
+  //-------------------------------------------------------------------------
+  // Return the origin (0,0,0)
+  //-------------------------------------------------------------------------
+  constexpr static Point3D origin() { return Point3D(0.0f, 0.0f, 0.0f); }
+
+  //-------------------------------------------------------------------------
+  // Setter
+  //-------------------------------------------------------------------------
+  constexpr void set(float newX, float newY, float newZ) {
+    x = newX;
+    y = newY;
+    z = newZ;
+  }
+};
+
+//-----------------------------------------------------------------------------
+// Scalar multiplication from the left-hand side
+//-----------------------------------------------------------------------------
+constexpr Point3D operator*(float scalar, const Point3D &p) { return p * scalar; }
+
+
+
+
+
+
+incl\types\cell\charMap.cpp:
+
+#include "charMap.hpp"
+#include <cstdint>
+#include <string_view>
+#include <string>
+
+void charMap::show(pos p) { bits |= static_cast<uint8_t>(p); }
+void charMap::show(uint8_t p) { bits |= p; }
+void charMap::showAll() { bits = 0xFF; }
+void charMap::hide(pos p) { bits &= (0xFF ^ static_cast<uint8_t>(p)); }
+void charMap::hide(uint8_t p) { bits &= (0xFF ^ p); }
+void charMap::hideAll() { bits = 0; }
+
+const std::string_view charMap::getChar() const {
+  if (Czops >= zpos) return Tchar;
+  static std::string buf;
+  buf = "";
+  // Unicode Braille base is U+2800.
+  uint32_t codepoint = 0x2800 + bits;
+
+  if (codepoint <= 0x7F) {
+    buf.push_back(static_cast<char>(codepoint));
+  } else if (codepoint <= 0x7FF) {
+    buf.push_back(static_cast<char>(0xC0 | ((codepoint >> 6) & 0x1F)));
+    buf.push_back(static_cast<char>(0x80 | (codepoint & 0x3F)));
+  } else if (codepoint <= 0xFFFF) {
+    buf.push_back(static_cast<char>(0xE0 | ((codepoint >> 12) & 0x0F)));
+    buf.push_back(static_cast<char>(0x80 | ((codepoint >> 6) & 0x3F)));
+    buf.push_back(static_cast<char>(0x80 | (codepoint & 0x3F)));
+  } else {
+    buf.push_back(static_cast<char>(0xF0 | ((codepoint >> 18) & 0x07)));
+    buf.push_back(static_cast<char>(0x80 | ((codepoint >> 12) & 0x3F)));
+    buf.push_back(static_cast<char>(0x80 | ((codepoint >> 6) & 0x3F)));
+    buf.push_back(static_cast<char>(0x80 | (codepoint & 0x3F)));
+  }
+
+  return buf;
+}
+
+// std::string_view charMap::getChar() const {
+//   // If Czops >= zpos, use the stored character (Tchar)
+//   if (Czops >= zpos) return Tchar;
+
+//   // Otherwise, compute the Braille character from 'bits'
+//   uint32_t ch = 0x2800 + bits;
+//   static std::string out;
+
+//   // Since Braille codepoints (U+2800–U+28FF) are always above 0x7FF,
+//   // the third branch (for ch <= 0xFFFF) is what’s normally used.
+//   if (ch <= 0x7F) {
+//     out.push_back(static_cast<char>(ch));
+//   } else if (ch <= 0x7FF) {
+//     out.push_back(static_cast<char>(0xC0 | ((ch >> 6) & 0x1F)));
+//     out.push_back(static_cast<char>(0x80 | (ch & 0x3F)));
+//   } else if (ch <= 0xFFFF) {
+//     out.push_back(static_cast<char>(0xE0 | ((ch >> 12) & 0x0F)));
+//     out.push_back(static_cast<char>(0x80 | ((ch >> 6) & 0x3F)));
+//     out.push_back(static_cast<char>(0x80 | (ch & 0x3F)));
+//   } else {
+//     out.push_back(static_cast<char>(0xF0 | ((ch >> 18) & 0x07)));
+//     out.push_back(static_cast<char>(0x80 | ((ch >> 12) & 0x3F)));
+//     out.push_back(static_cast<char>(0x80 | ((ch >> 6) & 0x3F)));
+//     out.push_back(static_cast<char>(0x80 | (ch & 0x3F)));
+//   }
+//   return out;
+// }
+
+
+
+
+
+incl\types\cell\charMap.hpp:
+
+#pragma once
+#include <cstdint>
+#include "../../general.hpp"
+#include <string_view>
+#include <string>
+
+struct charMap {
+  float zpos{0}, Czops{-1};
+  std::string Tchar{' '};
+
+  const std::string_view getChar() const;
+  constexpr void setChar(const std::string_view cha, const float z) {
+    Tchar = cha;
+    Czops = z;
+  }
+
+  uint8_t bits{};
+  void show(pos);
+  void show(uint8_t);
+  void showAll();
+  void hide(pos);
+  void hide(uint8_t);
+  void hideAll();
+};
+
+
+
+
+
+incl\types\cell\ScreenCell.cpp:
+
+#include "ScreenCell.hpp"
+#include "../../ext/consComm.hpp"
+
+void ScreenCell::AddToPrintBuf(std::stringstream &s) {
+  if (bgColorZ > colorZ) s << dcon::cmds::text::bg::setRGB(bgColor.R, bgColor.G, bgColor.G) << ' ';
+  else {
+    s << dcon::cmds::text::bg::setRGB(bgColor.R, bgColor.G, bgColor.G)
+      << dcon::cmds::text::fo::setRGB(color.R, color.G, color.G) << repres.getChar();
+  }
+}
+
+
+
+
+
+incl\types\cell\ScreenCell.hpp:
+
+#pragma once
+#include "charMap.hpp"
+#include "../color/color256.hpp"
+#include <limits>
+#include <sstream>
+
+struct ScreenCell {
+  Color256 color, bgColor;
+  float bgColorZ{std::numeric_limits<float>::lowest()}, colorZ{0};
+  charMap repres;
+
+  constexpr void setColor(const Color256 &col, const float Z) {
+    color = col;
+    colorZ = Z;
+  }
+
+  constexpr void setbgColor(const Color256 &col, const float Z) {
+    bgColor = col;
+    bgColorZ = Z;
+  }
+
+  void reset() {
+    repres.hideAll();
+    color = {};
+    bgColor = {};
+    bgColorZ = std::numeric_limits<float>::lowest();
+    colorZ = 0;
+  }
+  void AddToPrintBuf(std::stringstream &s);
+};
+
+
+
+
+
+incl\types\color\color256.hpp:
+
+#pragma once
+#include <algorithm>
+#include <stdexcept>
+
+struct Color256 {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
+  union {
+    struct {
+      unsigned char R;
+      unsigned char G;
+      unsigned char B;
+      unsigned char A;
+    };
+    unsigned int RGBA;
+  };
+#pragma GCC diagnostic pop
+
+  // Default constructor: black with full opacity
+  Color256() : R(0), G(0), B(0), A(255) {}
+
+  // Component-wise constructor
+  Color256(unsigned char r, unsigned char g, unsigned char b, unsigned char a = 255) : R(r), G(g), B(b), A(a) {}
+
+  // Grayscale constructor
+  Color256(unsigned char gray, unsigned char a = 255) : R(gray), G(gray), B(gray), A(a) {}
+
+  // Packed 32-bit RGBA value constructor
+  Color256(unsigned int rgba) : RGBA(rgba) {}
+
+  // Copy constructor
+  Color256(const Color256 &other) : RGBA(other.RGBA) {}
+
+  // Copy assignment operator
+  Color256 &operator=(const Color256 &other) {
+    if (this != &other) { RGBA = other.RGBA; }
+    return *this;
+  }
+
+  // Move constructor (trivial)
+  Color256(Color256 &&other) noexcept : RGBA(other.RGBA) {}
+
+  // Move assignment operator (trivial)
+  Color256 &operator=(Color256 &&other) noexcept {
+    if (this != &other) { RGBA = other.RGBA; }
+    return *this;
+  }
+
+  // Blends another color 'over' this one using standard alpha compositing.
+  // The 'alpha' parameter scales the source's effective alpha.
+  Color256 &blend(const Color256 &other, float alpha = 1.0f) {
+    float srcAlpha = (other.A / 255.0f) * alpha;
+    float dstAlpha = A / 255.0f;
+    float outAlpha = srcAlpha + dstAlpha * (1.0f - srcAlpha);
+
+    if (outAlpha > 0.0f) {
+      R = static_cast<unsigned char>((other.R * srcAlpha + R * dstAlpha * (1.0f - srcAlpha)) / outAlpha + 0.5f);
+      G = static_cast<unsigned char>((other.G * srcAlpha + G * dstAlpha * (1.0f - srcAlpha)) / outAlpha + 0.5f);
+      B = static_cast<unsigned char>((other.B * srcAlpha + B * dstAlpha * (1.0f - srcAlpha)) / outAlpha + 0.5f);
+      A = static_cast<unsigned char>(outAlpha * 255.0f + 0.5f);
+    }
+    return *this;
+  }
+
+  // -------------------------
+  // Comparison Operators
+  // -------------------------
+  bool operator==(const Color256 &other) const { return RGBA == other.RGBA; }
+
+  bool operator!=(const Color256 &other) const { return !(*this == other); }
+
+  // -------------------------
+  // Arithmetic Operators
+  // -------------------------
+  // Helper function for clamping values to [0, 255]
+  static unsigned char clamp(int value) { return static_cast<unsigned char>(std::min(255, std::max(0, value))); }
+
+  // Component-wise addition (with saturation)
+  Color256 operator+(const Color256 &other) const {
+    return Color256(clamp(R + other.R), clamp(G + other.G), clamp(B + other.B), clamp(A + other.A));
+  }
+
+  // Component-wise subtraction (with floor at 0)
+  Color256 operator-(const Color256 &other) const {
+    return Color256(clamp(R - other.R), clamp(G - other.G), clamp(B - other.B), clamp(A - other.A));
+  }
+
+  // Multiply color by a scalar factor (applied to each component)
+  Color256 operator*(float factor) const {
+    return Color256(clamp(static_cast<int>(R * factor + 0.5f)), clamp(static_cast<int>(G * factor + 0.5f)),
+                    clamp(static_cast<int>(B * factor + 0.5f)), clamp(static_cast<int>(A * factor + 0.5f)));
+  }
+
+  // Divide color by a scalar factor (applied to each component)
+  Color256 operator/(float factor) const {
+    if (factor == 0.0f) { throw std::runtime_error("Division by zero in Color256 operator/."); }
+    float invFactor = 1.0f / factor;
+    return *this * invFactor;
+  }
+
+  // -------------------------
+  // Compound Assignment Operators
+  // -------------------------
+  Color256 &operator+=(const Color256 &other) {
+    *this = *this + other;
+    return *this;
+  }
+
+  Color256 &operator-=(const Color256 &other) {
+    *this = *this - other;
+    return *this;
+  }
+
+  Color256 &operator*=(float factor) {
+    *this = *this * factor;
+    return *this;
+  }
+
+  Color256 &operator/=(float factor) {
+    *this = *this / factor;
+    return *this;
+  }
+};
+
+// struct Color256 {
+//   Col R, G, B;
+
+//   Color256(const int r = 0, const int g = 0, const int b = 0) : R(r), G(g), B(b) {}
+//   Color256(const Col &r, const Col &g, const Col &b) : R(r), G(g), B(b) {}
+//   Color256(const int Hex) : R{Hex & 0x0000FF}, G{(Hex & 0x00FF00) >> 2}, B{(Hex & 0xFF0000) >> 4} {}
+
+//   // Arithmetic with another color
+//   Color256 operator+(const Color256 &other) const { return Color256(R + other.R, G + other.G, B + other.B); }
+//   Color256 operator-(const Color256 &other) const { return Color256(R - other.R, G - other.G, B - other.B); }
+//   Color256 operator*(const Color256 &other) const { return Color256(R * other.R, G * other.G, B * other.B); }
+//   Color256 operator/(const Color256 &other) const { return Color256(R / other.R, G / other.G, B / other.B); }
+
+//   // Arithmetic with int
+//   Color256 operator+(int v) const { return Color256(R + v, G + v, B + v); }
+//   Color256 operator-(int v) const { return Color256(R - v, G - v, B - v); }
+//   Color256 operator*(int v) const { return Color256(R * v, G * v, B * v); }
+//   Color256 operator/(int v) const { return Color256(R / v, G / v, B / v); }
+
+//   // Compound assignment
+//   Color256 &operator+=(const Color256 &other) {
+//     R += other.R;
+//     G += other.G;
+//     B += other.B;
+//     return *this;
+//   }
+//   Color256 &operator-=(const Color256 &other) {
+//     R -= other.R;
+//     G -= other.G;
+//     B -= other.B;
+//     return *this;
+//   }
+//   Color256 &operator*=(const Color256 &other) {
+//     R *= other.R;
+//     G *= other.G;
+//     B *= other.B;
+//     return *this;
+//   }
+//   Color256 &operator/=(const Color256 &other) {
+//     R /= other.R;
+//     G /= other.G;
+//     B /= other.B;
+//     return *this;
+//   }
+
+//   Color256 &operator+=(int v) {
+//     R += v;
+//     G += v;
+//     B += v;
+//     return *this;
+//   }
+//   Color256 &operator-=(int v) {
+//     R -= v;
+//     G -= v;
+//     B -= v;
+//     return *this;
+//   }
+//   Color256 &operator*=(int v) {
+//     R *= v;
+//     G *= v;
+//     B *= v;
+//     return *this;
+//   }
+//   Color256 &operator/=(int v) {
+//     R /= v;
+//     G /= v;
+//     B /= v;
+//     return *this;
+//   }
+
+//   bool operator==(const Color256 &other) const { return R == other.R && G == other.G && B == other.B; }
+//   bool operator!=(const Color256 &other) const { return !(*this == other); }
+
+//   // Blend with another color using alpha (0.0 - 1.0)
+//   Color256 &blend(const Color256 &other, float alpha = 0.5f) {
+//     R.blend(other.R, alpha);
+//     G.blend(other.G, alpha);
+//     B.blend(other.B, alpha);
+//     return *this;
+//   }
+// };
+
+
+
+

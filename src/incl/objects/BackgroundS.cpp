@@ -1,4 +1,4 @@
-#include "backG.hpp"
+#include "BackgroundS.hpp"
 #include "../types/cell/ScreenCell.hpp"
 #include "../general.hpp"
 
@@ -15,9 +15,9 @@
 
 #include <algorithm> // For std::min and std::max
 
-void backG::onFrame(float deltaT) {} // No per-frame updates for a static background.
+void backgroundS::onFrame([[maybe_unused]] float deltaT) {} // No per-frame updates for a static background.
 
-void backG::howDraw(Screen &screen) { // Compute effective coordinates relative to the object's origin.
+void backgroundS::howDraw(Screen &screen) { // Compute effective coordinates relative to the object's origin.
   Point3D effectiveStart = Origin + Start;
   Point3D effectiveEnd = Origin + End;
 
@@ -38,7 +38,7 @@ void backG::howDraw(Screen &screen) { // Compute effective coordinates relative 
   for (unsigned int x = x0; x < x1; ++x) {
     for (unsigned int y = y0; y < y1; ++y) {
       auto &cell = screen.get(x, y);
-      if (cell.bgColorZ < Z) cell.setbgColor(Color, Z);
+      if (cell.bgColorZ < Origin.z) cell.setbgColor(Color, Origin.z);
     }
   }
 }

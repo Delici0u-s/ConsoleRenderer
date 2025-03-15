@@ -1,22 +1,30 @@
 #include "incl/manager/Handler.hpp"
 #include "incl/objects/Particle.hpp"
+#include "incl/objects/text.hpp"
 #include "incl/types/Point3D.hpp"
 #include "incl/types/color/color256.hpp"
 #include "incl/ext/random.h"
 #include "incl/ext/key.hpp"
 #include <chrono>
 #include <thread>
-#include "incl/objects/backG.hpp"
+#include "incl/objects/BackgroundS.hpp"
 
 // suggested to stay 180 x 40
-#define WIDTH 180
+#define WIDTH 160
 #define HEIGHT 40
 
 int main() {
   Handler H{WIDTH, HEIGHT};
   H.Render(true);
 
-  auto a{H.AddObject(backG{{255, 0, 0}, {10, 5}})};
+  auto a{H.AddObject(backgroundS{{255, 0, 0}, {10, 5, 1}})};
+  H.AddObject(text{"Hello\nworld\nund Fritz!",
+                   text::alignment::left,
+                   {10, 10, 10},
+                   {},
+                   {255, 255, 255, 255},
+                   {100, 100, 100, 40},
+                   -1});
 
   float x = WIDTH / 2.0f, y = HEIGHT / 2.0f;
   Point3D addTo;
