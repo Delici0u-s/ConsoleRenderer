@@ -26,7 +26,7 @@ void Particle::howDraw(Screen &screen) {
   try {
     auto &cell = screen.get(static_cast<unsigned int>(Origin.x), static_cast<unsigned int>(Origin.y));
     cell.repres.show(1 << out);
-    cell.color.blend(Color);
+    cell.setColor(Color, Origin.z);
   } catch (...) {
     // Ignore out-of-range drawing.
   }

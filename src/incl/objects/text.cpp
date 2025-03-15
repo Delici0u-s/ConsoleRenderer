@@ -69,11 +69,14 @@ void text::howDraw(Screen &screen) { // Split the content by newline into indivi
     for (unsigned int charIndex = 0; charIndex < line.size(); ++charIndex) {
       unsigned int cellX = static_cast<unsigned int>(Origin.x) + offsetX + charIndex;
       unsigned int cellY = static_cast<unsigned int>(Origin.y) + lineIndex;
-      auto &cell = screen.get(cellX, cellY);
+      try {
+        auto &cell = screen.get(cellX, cellY);
 
-      if (cell.bgColorZ <= bgColorZ) cell.setbgColor(BackgroundCol, Origin.z);
-      if (cell.colorZ <= Origin.z) cell.setColor(Color, Origin.z);
-      if (cell.repres.zpos <= Origin.z) cell.repres.setChar(std::string_view(&line[charIndex], 1), Origin.z);
+        // if (BackgroundCol.A != 0 && cell.bgColorZ <= bgColorZ) cell.setbgColor(BackgroundCol, Origin.z);
+        if ((bgColorZ != -99879)) cell.setbgColor(BackgroundCol, Origin.z);
+        cell.setColor(Color, Origin.z);
+        if (cell.repres.zpos <= Origin.z) cell.repres.setChar(std::string_view(&line[charIndex], 1), Origin.z);
+      } catch (...) { ; }
     }
   }
 }

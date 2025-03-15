@@ -1,5 +1,6 @@
 #pragma once
 #include <algorithm>
+#include <cstdint>
 #include <stdexcept>
 
 struct Color256 {
@@ -12,7 +13,7 @@ struct Color256 {
       unsigned char B;
       unsigned char A;
     };
-    unsigned int RGBA;
+    uint32_t RGBA;
   };
 #pragma GCC diagnostic pop
 
@@ -26,7 +27,25 @@ struct Color256 {
   Color256(unsigned char gray, unsigned char a = 255) : R(gray), G(gray), B(gray), A(a) {}
 
   // Packed 32-bit RGBA value constructor
-  Color256(unsigned int rgba) : RGBA(rgba) {}
+  Color256(uint32_t rgba) : RGBA(rgba) {}
+
+  // Hex string constructor (e.g., "#RRGGBB" or "RRGGBB")
+  Color256(const std::string &hex) {
+    std::string hexClean = hex;
+    if (!hex.empty() && hex[0] == '#') hexClean = hex.substr(1); // Remove leading '#'
+
+    if (hexClean.length() != 6 && hexClean.length() != 8)
+      throw std::invalid_argument("Color256 hex string must be 6 or 8 characters long");
+
+    auto hexToByte = [](const std::string &str, size_t pos) -> unsigned char {
+      return static_cast<unsigned char>(std::stoul(str.substr(pos, 2), nullptr, 16));
+    };
+
+    R = hexToByte(hexClean, 0);
+    G = hexToByte(hexClean, 2);
+    B = hexToByte(hexClean, 4);
+    A = (hexClean.length() == 8) ? hexToByte(hexClean, 6) : 255;
+  }
 
   // Copy constructor
   Color256(const Color256 &other) : RGBA(other.RGBA) {}
@@ -121,85 +140,3 @@ struct Color256 {
     return *this;
   }
 };
-
-// struct Color256 {
-//   Col R, G, B;
-
-//   Color256(const int r = 0, const int g = 0, const int b = 0) : R(r), G(g), B(b) {}
-//   Color256(const Col &r, const Col &g, const Col &b) : R(r), G(g), B(b) {}
-//   Color256(const int Hex) : R{Hex & 0x0000FF}, G{(Hex & 0x00FF00) >> 2}, B{(Hex & 0xFF0000) >> 4} {}
-
-//   // Arithmetic with another color
-//   Color256 operator+(const Color256 &other) const { return Color256(R + other.R, G + other.G, B + other.B); }
-//   Color256 operator-(const Color256 &other) const { return Color256(R - other.R, G - other.G, B - other.B); }
-//   Color256 operator*(const Color256 &other) const { return Color256(R * other.R, G * other.G, B * other.B); }
-//   Color256 operator/(const Color256 &other) const { return Color256(R / other.R, G / other.G, B / other.B); }
-
-//   // Arithmetic with int
-//   Color256 operator+(int v) const { return Color256(R + v, G + v, B + v); }
-//   Color256 operator-(int v) const { return Color256(R - v, G - v, B - v); }
-//   Color256 operator*(int v) const { return Color256(R * v, G * v, B * v); }
-//   Color256 operator/(int v) const { return Color256(R / v, G / v, B / v); }
-
-//   // Compound assignment
-//   Color256 &operator+=(const Color256 &other) {
-//     R += other.R;
-//     G += other.G;
-//     B += other.B;
-//     return *this;
-//   }
-//   Color256 &operator-=(const Color256 &other) {
-//     R -= other.R;
-//     G -= other.G;
-//     B -= other.B;
-//     return *this;
-//   }
-//   Color256 &operator*=(const Color256 &other) {
-//     R *= other.R;
-//     G *= other.G;
-//     B *= other.B;
-//     return *this;
-//   }
-//   Color256 &operator/=(const Color256 &other) {
-//     R /= other.R;
-//     G /= other.G;
-//     B /= other.B;
-//     return *this;
-//   }
-
-//   Color256 &operator+=(int v) {
-//     R += v;
-//     G += v;
-//     B += v;
-//     return *this;
-//   }
-//   Color256 &operator-=(int v) {
-//     R -= v;
-//     G -= v;
-//     B -= v;
-//     return *this;
-//   }
-//   Color256 &operator*=(int v) {
-//     R *= v;
-//     G *= v;
-//     B *= v;
-//     return *this;
-//   }
-//   Color256 &operator/=(int v) {
-//     R /= v;
-//     G /= v;
-//     B /= v;
-//     return *this;
-//   }
-
-//   bool operator==(const Color256 &other) const { return R == other.R && G == other.G && B == other.B; }
-//   bool operator!=(const Color256 &other) const { return !(*this == other); }
-
-//   // Blend with another color using alpha (0.0 - 1.0)
-//   Color256 &blend(const Color256 &other, float alpha = 0.5f) {
-//     R.blend(other.R, alpha);
-//     G.blend(other.G, alpha);
-//     B.blend(other.B, alpha);
-//     return *this;
-//   }
-// };
