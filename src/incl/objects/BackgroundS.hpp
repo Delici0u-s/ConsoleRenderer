@@ -1,7 +1,7 @@
 #pragma once
 
 #include "DefaultObj.hpp"
-#include "src/incl/types/Point3D.hpp"
+#include "../types/Point3D.hpp"
 
 class backgroundS : public DefaultObj {
 public:

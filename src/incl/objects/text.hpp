@@ -1,7 +1,7 @@
 #pragma once
 
 #include "DefaultObj.hpp"
-#include "src/incl/types/color/color256.hpp"
+#include "../types/color/color256.hpp"
 #include <cstdint>
 #include <limits>
 #include <string_view>

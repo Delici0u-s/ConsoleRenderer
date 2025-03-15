@@ -18,9 +18,9 @@ void Particle::howDraw(Screen &screen) {
   const float floorX = Origin.x - static_cast<int>(Origin.x);
   const float floorY = Origin.y - static_cast<int>(Origin.y);
   int out = 0;
-  if (floorX > 0.5f) out += 3;
-  if (floorY > 0.75f) out = (out == 3) ? 7 : 6;
-  else if (floorY > 0.5f) out += 2;
+  if (floorX >= 0.5f) out += 3;
+  if (floorY >= 0.75f) out = (out == 3) ? 7 : 6;
+  else if (floorY >= 0.5f) out += 2;
   else out += 1;
 
   try {
