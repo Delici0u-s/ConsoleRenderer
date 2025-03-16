@@ -20,11 +20,13 @@ private:
   std::recursive_mutex renderMutex{};
   bool isInDespawnRange(const std::shared_ptr<DefaultObj> &obj);
 
-  // Debug and FPS variables for rendering.
-  double renderCurrentFPS{0.0};
-  double renderMaxFPS{0.0};
-  double renderMinFPS{1e9};
+// Debug and FPS variables for rendering.
+#ifdef d_DEBUG
+  double PhysCurrentFPS{0.0};
+  double PhysMaxFPS{0.0};
+  double PhysMinFPS{1e9};
   unsigned long long totalObjectsCreated{0};
+#endif
 
   // **New: Pending object queue** (to prevent modifying objpointer while iterating)
   std::queue<std::shared_ptr<DefaultObj>> pendingObjects;
@@ -56,7 +58,9 @@ public:
     {
       std::lock_guard<std::recursive_mutex> lg(renderMutex);
       pendingObjects.push(ptr); // **New: Use queue instead of direct insertion**
+#ifdef d_DEBUG
       totalObjectsCreated++;
+#endif
     }
     return ptr;
   }
@@ -66,7 +70,9 @@ public:
     {
       std::lock_guard<std::recursive_mutex> lg(renderMutex);
       pendingObjects.push(ptr); // **New: Use queue instead of direct insertion**
+#ifdef d_DEBUG
       totalObjectsCreated++;
+#endif
     }
     return ptr;
   }

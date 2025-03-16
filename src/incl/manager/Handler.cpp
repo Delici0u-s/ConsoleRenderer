@@ -43,6 +43,10 @@ void Handler::physicsRun() {
   double accumulator = 0.0;
   const double dt_tick = 1.0 / ticks;
   const double dt_sub = dt_tick / subticks;
+#ifdef d_DEBUG
+  Timer fpsTimer{};
+  int frameCount{0};
+#endif
 
   while (true) {
     if (run) {
@@ -67,6 +71,18 @@ void Handler::physicsRun() {
         accumulator -= dt_tick;
       }
 
+#ifdef d_DEBUG
+      frameCount++;
+
+      double elapsedFps = fpsTimer.elapsed();
+      if (elapsedFps >= 1.0) {
+        PhysCurrentFPS = frameCount / elapsedFps;
+        if (PhysCurrentFPS > PhysMaxFPS) PhysMaxFPS = PhysCurrentFPS;
+        if (PhysCurrentFPS < PhysMaxFPS) PhysMinFPS = PhysCurrentFPS;
+        frameCount = 0;
+        fpsTimer.reset();
+      }
+#endif
       if (frameTime < dt_tick) {
         auto sleepDuration =
             std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::duration<double>(dt_tick - frameTime));
@@ -80,14 +96,20 @@ void Handler::physicsRun() {
 
 void Handler::RenderRunner() {
   Timer frameTimer{};
+#ifdef d_DEBUG
   Timer fpsTimer{};
   int frameCount = 0;
+  double renderCurrentFPS{0.0};
+  double renderMaxFPS{0.0};
+  double renderMinFPS{1e9};
+#endif
 
   while (true) {
     if (run) {
       static const double targetFrameDuration = 1.0 / targetFrameRate;
 
       renderer.DrawScreen();
+#ifdef d_DEBUG
       frameCount++;
 
       double elapsedFps = fpsTimer.elapsed();
@@ -99,10 +121,12 @@ void Handler::RenderRunner() {
         fpsTimer.reset();
       }
 
-#ifdef d_DEBUG
-      std::cout << dcon::cmds::screen::ClearLine << "Fps: " << std::setw(3) << (int)renderCurrentFPS << '/'
+      std::cout << dcon::cmds::screen::ClearLine << "FpsR: " << std::setw(3) << (int)renderCurrentFPS << '/'
                 << std::setw(3) << targetFrameRate << "\tmax: " << (int)renderMaxFPS << "  min: " << std::setw(3)
                 << (int)renderMinFPS << '\n';
+      std::cout << dcon::cmds::screen::ClearLine << "FpsP: " << std::setw(3) << (int)PhysCurrentFPS << '/'
+                << std::setw(3) << ticks << "\tmax: " << (int)PhysMaxFPS << "  min: " << std::setw(3) << (int)PhysMinFPS
+                << '\n';
       std::cout << dcon::cmds::screen::ClearLine << "Obj: " << std::setw(4) << objpointer.size()
                 << "\tTot. obj: " << totalObjectsCreated;
 #endif

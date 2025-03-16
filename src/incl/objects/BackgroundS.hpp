@@ -8,7 +8,8 @@ public:
   Point3D Start, End;
 
   backgroundS(const Color256 &color, const Point3D &end = {0, 0}, const Point3D &start = {0, 0},
-              const Point3D origin = {}) : DefaultObj(origin, {}, color), Start(start), End{end} {}
+              const Point3D origin = {}, float despawnRad = 0) :
+      DefaultObj(origin, {}, color, despawnRad), Start(start), End{end} {}
 
   void onFrame(float deltaT) override;
   void howDraw(Screen &screen) override;

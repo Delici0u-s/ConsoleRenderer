@@ -2,7 +2,7 @@
 #include "DefaultObj.hpp"
 #include "../ext/key.hpp"
 #include "Particle.hpp"
-#include "src/incl/types/Point3D.hpp"
+#include "../types/Point3D.hpp"
 
 class Player : public DefaultObj {
 public:

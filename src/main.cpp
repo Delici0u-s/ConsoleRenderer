@@ -21,7 +21,7 @@ int main() {
   H.Render(true);
 
   // Create a background object (if needed)
-  auto bg = H.AddObject(backgroundS{{255, 0, 0}, {4, 2, 1}});
+  auto bg = H.AddObject(backgroundS{{255, 0, 0}, {4, 2, 1}, {}, {}, 1});
 
   // Create a sample text object for additional visual feedback.
   auto txt{H.AddObject(text{
@@ -32,16 +32,17 @@ int main() {
       {255, 255, 255, 255},
       -1,
       {100, 100, 100, 40},
+      2,
   })};
 
   H.AddObject(text{
-      "Controls\nUP: W\nLEFT: A\nRIGHT: D\nDOWN: S\nExit: ESC",
-      text::alignment::right,
-      {WIDTH - 9, 0, 100},
+      "Controls\nUP:    W\nLEFT:  A\nRIGHT: D\nDOWN:  S\nExit:  ESC",
+      text::alignment::left,
+      {0, 0, 100},
       {},
       {"FEE7E7"},
   });
-  H.AddObject(backgroundS({"101820"}, {WIDTH, 6}, {WIDTH - 9, 0}, {0, 0, 10}));
+  H.AddObject(backgroundS({"101820"}, {10, 6}, {0, 0}, {0, 0, 10}));
 
   // Set initial player position at the center of the screen.
   float playerX = WIDTH / 2.0f;
@@ -53,7 +54,7 @@ int main() {
                                              0.01f,              // spawn interval in seconds
                                              {0, 255, 255, 255}, // particle color
                                              0.5f,               // particle lifetime
-                                             10.0f,              // despawn radius
+                                             5.0f,               // despawn radius
                                              0.02f, 100));       // velocity range
 
   // Create the player object.
